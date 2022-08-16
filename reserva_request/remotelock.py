@@ -25,6 +25,7 @@ class RemoteLock:
             path='access_persons',
             params={
                 'type': ['access_user'],
+                'per_page': 50
             }
         )
         ret = []
@@ -52,9 +53,7 @@ class RemoteLock:
             method='GET',
             path='devices',
             params={
-                'attributes': {
-                    'type': ['lock']
-                }
+                'type': ['lock']
             }
         )
         if len(r) != 1:
@@ -63,7 +62,7 @@ class RemoteLock:
 
         lock_id = r[0]['id']
         name = self.__make_guest_name()
-        starts_at, ends_at = self.__transform_rsv_time()
+        starts_at, ends_at = self.transform_rsv_time()
         r = self.__api(
             path='access_persons',
             params={
@@ -122,6 +121,8 @@ class RemoteLock:
             path='access_persons',
             params={
                 'type': ['access_guest'],
+                'sort': ["-created_at"],
+                'per_page': 50
             }
         )
         if r is None or len(r) == 0:
@@ -189,7 +190,7 @@ class RemoteLock:
             'exception_count': len(exception_list)
         })
 
-    def __transform_rsv_time(self):
+    def transform_rsv_time(self):
         rsvtime = self.rsv_info['rsv_time']
         m = re.match(r'([0-9]+)/([0-9]+)/([0-9]+) ([0-9]+):([0-9]+)[^0-9]+([0-9]+):([0-9]+)', rsvtime)
         (year, month, day, s_hour, s_min, e_hour, e_min) = m.groups()
@@ -227,7 +228,7 @@ class RemoteLock:
                 self.__error(params, r)
                 raise ResponseError(r.status_code, r.reason)
         elif method == 'GET':
-            r = requests.get(f'https://api.remotelock.jp/{path}', headers=headers, json=params)
+            r = requests.get(f'https://api.remotelock.jp/{path}', headers=headers, params=params)
             if r.status_code != 200:
                 self.__error(params, r)
                 raise ResponseError(r.status_code, r.reason)

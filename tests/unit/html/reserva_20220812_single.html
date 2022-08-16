@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <title>RESERVA</title>
+        <meta name="Description" content="" />
+        <meta name="Keywords" content="" />
+        <meta name="Author" content="" />
+        <meta name="Copyright" content="" />
+
+        <meta property="og:title" content=""/>
+        <meta property="og:type" content="website"/>
+        <meta property="og:description" content=""/>
+        <meta property="og:url" content="http://"/>
+        <meta property="og:image" content="/images/fb_ogp_image.jpg"/>
+        <meta property="og:site_name" content=""/>
+
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="format-detection" content="telephone=no" />
+        <link href="/apple-touch-icon-precomposed.png?v=20220809" rel="apple-touch-icon-precomposed">
+
+        <link rel="stylesheet" href="/reserva/css/flexnav.css?v=20220809" />
+
+        <link rel="stylesheet" type="text/css" href="/reserva/css/jquery.multiselect.css?v=20220809" />
+        <link rel="stylesheet" type="text/css" href="/reserva/css/base.css?v=20200327?v=20220809" />
+        <link rel="stylesheet" type="text/css" href="/reserva/css/common.css?v=20200327?v=20220809" />
+        <link rel="stylesheet" type="text/css" href="/reserva/css/style_dashboard.css?v=20200327?v=20220809" />
+                                    <link rel="stylesheet" type="text/css" href="/reserva/css/style_dashboard_facility.css?v=20200327?v=20220809" />
+                <link rel="stylesheet" type="text/css" href="/css/header-common.css?v=20200327?v=20220809" />
+        <link rel="stylesheet" type="text/css" href="/css/header-reservation.css?v=20200327?v=20220809" />
+        <link rel="stylesheet" type="text/css" href="/css/footer-common.css?v=20200327?v=20220809" />
+        <link rel="stylesheet" type="text/css" href="/css/footer-reservation.css?v=20200327?v=20220809" />
+        <link rel="stylesheet" type="text/css" href="/css/notification.css?v=20200327?v=20220809" />
+        
+        <link href='//fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+
+        <link rel="stylesheet" href="/reserva/webfont/css/font-awesome.min.css?v=20220809">
+        <link rel="stylesheet" href="/reserva/webfont/css/unicons.css?v=20220809">
+
+        <link type="text/css" href="/reserva/skins/all.css?v=20220809" rel="stylesheet" media="all" />
+                    <link href='/reserva/css/fullcalendar.css?v=20220809' rel='stylesheet' />
+            <link href='/reserva/css/fullcalendar.print.css?v=20220809' rel='stylesheet' media='print' />
+                <style type="text/css">
+            pre {
+                font-family: helvetica,arial,"Hiragino Kaku Gothic Pro",Meiryo,"lucida grande",tahoma,verdana,"MS PGothic",sans-serif;
+                white-space: pre-wrap;
+                white-space: -moz-pre-wrap;
+                white-space: -pre-wrap;
+                white-space: -o-pre-wrap;
+                word-wrap: break-word;
+            }
+            pre.text_dd{
+                box-sizing: border-box;
+                line-height: 1.5;
+            }
+
+            #ui-datepicker-div{
+                z-index: 8000 !important;
+            }
+        </style>
+
+        <script>
+            var current_route = "reserva_admin_reserve";
+
+                            var bus_version_plan = "100";
+                        var silver = "200";
+            var enterprise = "220";
+            var bus_reserve_flag = "1";
+            var bus_school_design = "1";
+            var event_type = "4";
+            var school_type = "2";
+            var event_school_design_on = "1";
+        </script>
+        <script type="text/javascript" src="/reserva/js/alertmsg.JP.js?t=20191126?v=20220809"></script>
+        <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css">
+        <script type="text/javascript" src="/reserva/js/common.js?v=20200327?v=20220809"></script>
+        <script type="text/javascript" src="/reserva/js/jquery.js?v=20220809"></script>
+        <script type="text/javascript" src="/reserva/js/jquery-ui.js?v=20220809"></script>
+        <script type="text/javascript" src="/reserva/js/header.js?v=20200327?v=20220809"></script>
+        <script type="text/javascript" src="/reserva/js/notification.js?v=20220809"></script>
+        <script type="text/javascript" src="/reserva/js/oneClick.js?v=20220809"></script>
+
+        <link rel="stylesheet" href="/reserva/css/responsive-tables.css?v=20220809">
+        <!--[if !lt IE 9]><!-->
+        <script src="/reserva/js/responsive-tables.js?v=20220809"></script>
+        <!--<![endif]-->
+
+                
+        
+                    <script src="/reserva/js/jquery-1.9.0.js?v=20220809" type="text/javascript"></script>
+        
+        <script type="text/javascript" src="/reserva/js/jquery.icheck.min.js?v=20220809"></script>
+        <script type="text/javascript" src="/reserva/js/event_availability.js?v=20220809"></script>
+        <script>
+            $(document).ready(function(){
+                $('input:not(.style-origin)').iCheck({ //style-originクラスのついたinput要素以外に適用 課題 #9928
+                    checkboxClass: 'icheckbox_square',
+                    radioClass: 'iradio_square'
+                });
+            });
+        </script>
+
+        <script>
+            $(function() {
+                $('input:not(.style-origin)').iCheck({ //style-originクラスのついたinput要素以外に適用 課題 #9928
+                    checkboxClass: 'icheckbox_flat-aero',
+                    radioClass: 'iradio_flat-aero',
+                    increaseArea: '10%', // optional
+                    cursor: true // optional
+                });
+            });
+            function checkaff_contract_flag() {
+                $.ajax({
+                    type: "POST",
+                    url: "/AjaxSearch",
+                    data: {"cmd":"get_aff_contract_flag"},
+                    success: function(msg) {
+                        var arr = msg.split('[%]');
+                        if (arr[0] == '1') {
+                            if (arr.length >= 2 && arr[1] == '0') {
+                                window.location.href = "/rsv/affiliate";
+                            } else {
+                                alert(getmsg('affiliate_CHK'));
+                            }
+                        } else if (arr[0] == '2') {
+                            window.location.href = "/rsv/dashboard";
+                        } else if (arr[0] == '3') {
+                            window.location.href = "/rsv/login";
+                        }
+                        return false;
+                    }
+                });
+                return false;
+            }
+            function check_medeia_contract_flag()
+            {
+                $.ajax({
+                    type: "POST",
+                    url: "/AjaxSearch",
+                    data: {"cmd":"get_media_contract", "bus_cd": "191885"},
+                    beforeSend:function()
+                    {
+                    },
+                    success: function(msg)
+                    {
+                        var ret = $.parseJSON(msg);
+                        if(ret == 'OK'){
+                            window.location.href = "/rsv/media";
+                        }else{
+                            alert(getmsg('madeia_CHK'));
+                        }
+                        return false;
+                    }
+                });
+                return false;
+            }
+        </script>
+    </head>
+
+    
+    <body id="dashboad"  onkeydown="return hookkeydown(event);">
+
+                      <script>
+      </script>
+  <!-- start Header -->
+  <header>
+    <!-- start #Account-nav -->
+    <div class="area-nav" id="Account-nav">
+      <div class="inner">
+        <div class="account-business nav-item">
+          <a>
+            <span class="business-name">市場町内会</span>
+          </a>
+          <div class="nav-child">
+            <div class="area-info">
+              <div class="business-name">市場町内会</div>
+              <div class="business-id"><span>RESERVAコード：</span>ichiba</div>
+            </div>
+                            <ul>
+                <li><a href="/rsv/store">利用企業・店舗情報</a></li>
+                <li><a href="https://id.reserva.be/adm/service/list">利用サービス管理</a></li>
+                <li><a href="https://id.reserva.be/adm/subadm/list">全サービス共通設定</a></li>
+              </ul>
+                      </div>
+        </div>
+        <div class="account-admin nav-item">
+          <a href="javascript:void(0);"><i class="nav-icn nav-icn-admin"></i></a>
+                                    <div class="nav-child">
+                <ul>
+                  <li><a href="/rsv/settingaccount">アカウント情報</a></li>
+                                      <li><a href="https://id.reserva.be/adm/credit/history?callback_url=https://reserva.be/rsv/dashboard">お支払い方法・履歴</a></li>
+                                    <li><a href="/rsv/logout">ログアウト</a></li>
+                </ul>
+              </div>
+                              </div>
+        <div class="account-app nav-item -app">
+          <a href="javascript:void(0);"><i class="nav-icn nav-icn-app"></i></a>
+          <div class="nav-child">
+            <ul class="account-app-primary">
+                              <li><a href="/rsv/dashboard"><i class="nav-icn nav-icn-reservation"></i><span>予約</span></a></li>
+                                                      </ul>
+                                      <div class="app-add">
+                <a href="https://id.reserva.be/adm/service/list">サービスを追加する</a>
+              </div>
+                      </div>
+        </div>
+        <div class="account-notification nav-item -notification">
+          <a class="notifyOpen" href="/adm/notification/popup"><i class="nav-icn nav-icn-notification"></i>
+                      </a>
+        </div>
+      </div>
+    </div>
+    <!-- end #Account-nav -->
+    <!-- start #Function-nav -->
+    <div class="area-nav" id="Function-nav">
+      <div class="inner">
+        <div class="area-wrap">
+          <div class="area-logo logo-reservation"><a title="RESERVA Reservation レゼルバ予約" href="/rsv/dashboard"></a></div>
+        </div>
+        <div class="area-wrap">
+                      <div class="area-text">
+              <ul>
+                <li class="nav-item">
+                                      <a class="link -primary" href="/rsv/contract">
+                      フリー
+                    </a>
+                    <a class="link -secondary" href="/rsv/contract">
+                      プラン変更
+                    </a>
+                                  </li>
+                                <li class="nav-item">
+                  <a class="link -primary" href="/rsv/contract">
+                    月間予約数：13件
+                  </a>
+                </li>
+              </ul>
+            </div>
+                    <div class="area-outbound">
+            <ul>
+                              <li class="nav-item -only-icn">
+                  <a title="予約サイトを見る" href="/ichiba" target="_blank" style="box-shadow: inset 0 -1px 0 0 rgb(74, 186, 167, 0.5);">予約サイトを見る</a>
+                </li>
+                            <li class="nav-item -only-icn"><a title="操作マニュアル" href="https://support.reserva.be/hc/ja/categories/202713577" target="_blank"><i class="nav-icn nav-icn-rsv-question"></i></a></li>
+                              <li class="nav-item -only-icn"><a href="javascript:void(0);"><i class="nav-icn nav-icn-rsv-setting"></i></a>
+                  <div class="nav-child -setting">
+                    <ul>
+                      <li><a href="/rsv/settingbasic">基本設定</a></li>
+                      <li><a href="/rsv/advanced">高度な設定</a></li>
+                                          <li><a href="https://support.reserva.be/hc/ja/sections/204220438" target="_blank" rel="noopener noreferrer">マニュアル：基本設定</a></li>
+                      <li><a href="https://support.reserva.be/hc/ja/sections/205162968" target="_blank" rel="noopener noreferrer">マニュアル：高度な設定</a></li>
+                                        </ul>
+                  </div>
+                </li>
+                          </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end #Function-nav -->
+    <!-- start #Global-nav -->
+    <div class="area-nav" id="Global-nav">
+      <div class="inner">
+        <div class="nav-parent">
+          <ul>
+                          <li class="nav-item"><a href="/rsv/reservations/calendar"><i class="nav-icn nav-icn-rsv-reserve"></i><span>予約管理</span></a></li>
+                        <li class="nav-item"><a href="/rsv/customers"><i class="nav-icn nav-icn-rsv-customer"></i><span>顧客管理</span></a></li>
+                          <li class="nav-item" ><a href="javascript:void(0);"><i class="nav-icn nav-icn-rsv-support"></i><span>顧客サポート</span></a>
+                <div class="nav-child">
+                  <ul>
+                    <li class="nav-child-item"><a href="/rsv/contact">問い合わせ管理</a></li>
+                                          <li class="nav-child-item"><a href="/rsv/notice">お知らせ作成</a></li>
+                                      </ul>
+                </div>
+              </li>
+                        <li class="nav-item"><a href="/rsv/contract/list"><i class="nav-icn nav-icn-rsv-contract"></i><span>月額契約管理</span></a></li>
+            <li class="nav-item"><a href="/rsv/analysis/top"><i class="nav-icn nav-icn-rsv-reports"></i><span>集計・分析</span></a></li>
+                          <li class="nav-item"><a href="javascript:void(0);"><i class="nav-icn nav-icn-rsv-attract"></i><span>集客・タグ</span></a>
+                <div class="nav-child">
+                  <ul>
+                                          <li class="nav-child-item"><a onclick="javascript: alert('現在のプランでは、ご利用できません。');">SEO対策</a></li>
+                                                              <li class="nav-child-item"><a onclick="javascript: alert('現在のプランでは、ご利用できません。');">コンバージョン</a></li>
+                      <li class="nav-child-item"><a onclick="javascript: alert('現在のプランでは、ご利用できません。');">サイト埋め込み</a></li>
+                                                            <li class="nav-child-item"><a href="/rsv/widget">予約するボタン</a></li>
+                    <li class="nav-child-item"><a href="javascript: void(0);" onclick="javascript: return checkaff_contract_flag();">アフィリエイト</a></li>
+                  </ul>
+                </div>
+              </li>
+                        <li class="nav-item"><a href="javascript:void(0);"><i class="nav-icn nav-icn-rsv-payment"></i><span>契約・決済</span></a>
+              <div class="nav-child">
+                <ul>
+                  <li class="nav-child-item"><a href="/rsv/contract">契約プラン</a></li>
+                                      <li class="nav-child-item"><a href="/rsv/shop">決済サービス</a></li>
+                                    <li class="nav-child-item"><a href="javascript: void(0);" onclick="javascript: return check_medeia_contract_flag();">メディア連係</a></li>
+                </ul>
+              </div>
+            </li>
+            <li class="nav-item -more"><a href="javascript:void(0);"><i class="nav-icn nav-icn-rsv-more"></i><span>その他</span></a>
+              <div class="nav-child nav-more -cube">
+                <ul class="nav-more-child">
+                  <li class="nav-child-item current"><a href="/rsv/reservations/calendar"><i class="nav-icn nav-icn-rsv-reserve"></i><span>予約管理</span></a></li>
+                  <li class="nav-child-item"><a href="/rsv/customers"><i class="nav-icn nav-icn-rsv-customer"></i><span>顧客管理</span></a></li>
+                                      <li class="nav-child-item"><a href="javascript:void(0);"><i class="nav-icn nav-icn-rsv-support"></i><span>顧客サポート</span></a>
+                      <div class="nav-grandchild">
+                        <ul>
+                          <li><a href="/rsv/contact">問い合わせ管理</a></li>
+                          <li><a href="/rsv/notice">お知らせ作成</a></li>
+                        </ul>
+                      </div>
+                    </li>
+                                    <li class="nav-child-item"><a href="/rsv/contract/list"><i class="nav-icn nav-icn-rsv-contract"></i><span>月額契約管理</span></a></li>
+                  <li class="nav-child-item"><a href="/rsv/analysis/top"><i class="nav-icn nav-icn-rsv-reports"></i><span>集計・分析</span></a></li>
+                                      <li class="nav-child-item"><a href="javascript:void(0);"><i class="nav-icn nav-icn-rsv-attract"></i><span>集客・タグ</span></a>
+                      <div class="nav-grandchild">
+                        <ul>
+                                                      <li><a onclick="javascript: alert('現在のプランでは、ご利用できません。');">SEO対策</a></li>
+                                                                                <li><a onclick="javascript: alert('現在のプランでは、ご利用できません。');">コンバージョン</a></li>
+                            <li><a onclick="javascript: alert('現在のプランでは、ご利用できません。');">サイト埋め込み</a></li>
+                                                                              <li><a href="/rsv/widget">予約するボタン</a></li>
+                          <li><a href="javascript: void(0);" onclick="javascript: return checkaff_contract_flag();">アフィリエイト</a></li>
+                        </ul>
+                      </div>
+                    </li>
+                                    <li class="nav-child-item"><a href="javascript:void(0);"><i class="nav-icn nav-icn-rsv-payment"></i><span>契約・決済</span></a>
+                    <div class="nav-grandchild">
+                      <ul>
+                        <li class="nav-child-item"><a href="/rsv/contract">契約プラン</a></li>
+                                                  <li class="nav-child-item"><a href="/rsv/shop">決済サービス</a></li>
+                                                <li class="nav-child-item"><a href="javascript: void(0);" onclick="javascript: return check_medeia_contract_flag();">メディア連係</a></li>
+                      </ul>
+                    </div>
+                  </li>
+                </ul><!-- end .nav-more-child -->
+              </div><!-- end .nav-child.nav-more -->
+            </li><!-- end .nav-item.-more -->
+            <li class="nav-item -app"><a href="javascript:void(0);"><i class="nav-icn nav-icn-rsv-app"></i><span>利用サービス</span></a>
+              <div class="nav-child nav-app -cube">
+                <ul class="account-app-primary">
+                                      <li><a href="/rsv/dashboard"><i class="nav-icn nav-icn-reservation"></i><span>予約</span></a></li>
+                                                                      </ul>
+                                                  <div class="app-add">
+                    <a href="https://id.reserva.be/adm/service/list">サービスを追加する</a>
+                  </div>
+                              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- end #Global-nav -->
+  </header>
+  <!-- end Header -->
+
+<!-- Notification -->
+<div class="box-notification"></div>
+
+  <iframe style="display:none;" src="/check/session/business/iframe"></iframe>
+  <iframe style="display:none;" id="op" src="https://id-sso.reserva.be/check/session?member_type=1"></iframe>
+
+<!-- start #promotion-area -->
+<div id="promotion-area">
+
+
+  
+
+  
+</div>
+<!-- end #promotion-area -->
+
+        
+                    <form name="mainform" id="mainform" method="post" action="" enctype="multipart/form-data">
+                <input name="mode" value="" type="hidden">
+                <input id="g_business_cd" name="g_business_cd" value="191885" type="hidden">
+                                    <input type="hidden" id="g_cti_mode" name="g_cti_mode" value="0">
+                
+                <!--  content -->
+                <div id="wrapper">
+
+                    
+                    <input type="hidden" name="search_rsv_no" value="24470971">
+<input type="hidden" name="callback_url" value="https://reserva.be/rsv/reservations/calendar">
+
+<input type="hidden" name="search_key" value="">
+<input type="hidden" name="search_rsv_svd_no" value="">
+<input type="hidden" name="search_stf_cd" value="">
+<input type="hidden" name="search_time1" value="">
+<input type="hidden" name="search_timehh_st" value="">
+<input type="hidden" name="search_timemm_st" value="">
+<input type="hidden" name="search_time2" value="">
+<input type="hidden" name="search_timehh_ed" value="">
+<input type="hidden" name="search_timemm_ed" value="">
+<input type="hidden" name="search_rsv_status" value="">
+<input type="hidden" id="zoom_rsv_no" value="24470971">
+<input type="hidden" id="zoom_rsv_all_time" value="2022/08/07 17:00～21:00">
+<input type="hidden" id="zoom_meeting_id" value="">
+
+<input type="hidden" id="cti_no" name="cti_no" value="">
+<input type="hidden" id="cti_memo_update_flg" name="cti_memo_update_flg" value="0">
+<input type="hidden" id="cti_memo" name="cti_memo" value="">
+<input type="hidden" id="cti_reservaok_flg" name="cti_reservaok_flg" value="0">
+<input type="hidden" id="cti_add" value="">
+
+<input type="hidden" id="show_cancel_result" name="show_cancel_result" value="0">
+<input type="hidden" id="token" name="token" value="{1ED2C3A8-F6DF-9A92-9FB6-1D389FDC01DC}">
+<input type="hidden" id="ajaxPage" name="ajaxPage" value="1">
+<input type="hidden" name="scroll_tr_no" value="51202_24470971">
+<input type="hidden" id="is_searched" name="is_searched" value="">
+
+<!-- ポップアップ start -->
+<div class="om_popup_bg om-popup"></div>
+<div class="om_popup" id="om_popup">
+    <h4>ホール</h4>
+    <span>2022/08/07 17:00～21:00</span>
+    <span>1名</span>
+    <span>(ホスト: )</span>
+    <div class="btn-area">
+        <input type="submit" class="btn size_l cancel" onclick="closeOmPopup();return false;" value="キャンセル"/>
+        <input type="submit" class="btn size_l zoom" onclick="startMeeting('');return false;" value="開始する"/>
+    </div>
+</div>
+
+
+<style type="text/css">
+
+    @media screen and (max-width: 800px) {
+        .child_sai dt{
+            border-top: none !important;
+        }
+        .child_sai_text{
+            display: none !important;
+        }
+    }
+</style>
+
+
+<script type="text/javascript" src="/reserva/js/holiday.js?v=20220809"></script>
+
+
+
+
+<div id="wrapper"><!-- start contents -->
+<div id="contents" class="clearfix reservations-detail_contents">
+
+    <div id="sidebar" class="nav dp_block clearfix">
+        <ul>
+                    <li style="width:25%;"><a href="javascript:void(0);" class="btn full active" onclick="javascript:window.location.href='/rsv/reservations/calendar'">予約<br>確認</a></li>
+                            <li style="width:25%;"><a href="javascript:void(0);" class="btn full navi" onclick="javascript:window.parent.mySubmit2('list_add')">予約<br>登録</a></li>
+                            <li style="width:25%;"><a href="javascript:void(0);" class="btn full navi" onclick="javascript:window.parent.mySubmit2('list_holiday')">予約<br>不可</a></li>
+                <li style="width:25%;"><a href="javascript:void(0);" class="btn full navi" onclick="javascript:window.location.href='/rsv/reservations/availability'">空き<br>状況</a></li>
+            
+                            </ul>
+    </div><!--sidebar -->
+
+    
+    <div id="main_contents" class="dp_block">
+
+        
+        <div class="box anchor">
+            <ul>
+                <li><a class="smoothscroll" href="#div_reserva_left">顧客情報<i class="fa fa-chevron-circle-down"></i></a></li>
+                <li><a class="smoothscroll" href="#div_reserva_right">予約情報<i class="fa fa-chevron-circle-down"></i></a></li>
+            </ul>
+        </div>
+
+                                            
+        <div class="rsv-item rsv-item-detail">
+            <div class="block btn">
+                                                                                                                                                <span class="button" id="ipt_status2"><a class="btn size_m cancel" id="btn_cancel_24470971" onclick="javascript:window.parent.reserve_cancel();"  title="" href="javascript:void(0);">キャンセル</a></span>
+                                                                                                                                                                            </div>
+        </div>
+        
+        
+        <div class="rsv-item rsv-item-detail"  id="div_reserva_left">
+            <div class="box title">
+                <h3>顧客情報</h3>
+            </div>
+            <div class="block form">
+                <dl>
+                                        <dt>氏名</dt>
+                    <dd>しんぐる&nbsp;花子</dd>
+                    <dt>氏名（カナ）<span class="required">*</span></dt>
+                    <dd>シングル&nbsp;ハナコ</dd>
+                    <dt>メールアドレス</dt>
+                    <dd>
+                    hanako@example.com
+                                            <span class="icon mail"><a href="javascript:void(0)" class="delivery-individual" data-id="7002786"><i class="fa fa-envelope" style="color:#9dbed1;"></i></a></span>
+                                        </dd>
+                    <dt>電話番号<span class="required">*</span></dt>
+                    <dd> 0458293049</dd>
+
+                    <!-- 定型項目・任意項目 -->
+                                    </dl>
+            </div><!-- /.block.form -->
+            <a class="internal-top" href="#contents"><i class="unicon-top-arrow-to-top"></i></a>
+        </div><!-- /#div_reserva_left -->
+
+        <div class="rsv-item" id="div_reserva_right">
+            <div class="box title">
+                <h3>予約情報</h3>
+                <span class="attention" id="msg_show"></span>
+            </div>
+            <div class="block form">
+                <dl>
+                                            <dt>予約番号</dt>
+                        <dd>f8pQ4XuLB</dd>
+                                        <dt>予約種類</dt>
+                    <dd>ネット予約</dd>
+
+                                                                    <dt>メニュー<span class="required">*</span></dt>
+                        <dd>ホール</dd>
+                                            
+                    
+                    
+                                            <dt>予約日時<span class="required">*</span></dt>
+                                                    <dd>
+                                                                                                        2022/08/07 夜間(17:00～21:00)
+                                                                                            </dd>
+                                            
+                    
+                                                                                                        </dl>
+
+                <dl>
+                                            <dt>オプション</dt>
+                                        <dd>
+                                        </dd>
+                </dl>
+                
+                                                    
+                <dl>
+                                                            
+                    <hr>
+                    <dt>状況</dt>
+                    <dd><span id="span_status">
+                                                予約確定
+                                            </span>
+                    </dd>
+
+                    
+                    <!-- ワクチン -->
+                                        <!-- ワクチン -->
+
+                    <!-- アンケート -->
+                    
+                    <dt>顧客からの連絡</dt>
+                    <dd><pre class="text_dd">お囃子</pre></dd>
+                    <dt>管理メモ</dt>
+                    <dd><pre class="text_dd"></pre></dd>
+                    <dt>シンプルアンケート</dt>
+                    <dd><pre class="text_dd"></pre></dd>
+                                        <dt>新規登録日時</dt>
+                    <dd>2022/08/07 09:47</dd>
+                    <dt>新規登録者</dt>
+                    <dd>
+                                            -
+                                        </dd>
+                    <dt>最終更新日時</dt>
+                    <dd id="update_time">
+                                            2022/08/07 09:52                                        </dd>
+                    <dt>最終更新者</dt>
+                    <dd id="update_id">
+
+                                                                        管理者&nbsp;次郎
+                                                                </dd>
+                </dl>
+            </div><!-- /.block.form -->
+        </div><!-- /#div_reserva_right -->
+
+    </div><!--main_contents -->
+
+    <div class="rsv-item rsv-item-detail">
+        <div class="block btn clear bottom">
+                                                                                                                        <span class="button" id="ipt_status2"><a class="btn size_m cancel" id="btn_cancel_24470971" onclick="javascript:window.parent.reserve_cancel();"  title="" href="javascript:void(0);">キャンセル</a></span>
+                                                                                                                                                                </div>
+    </div>
+
+    <div class="bottom_button clear" id="div_reserva_bottom">
+        <a id="btn_back_a" class="btn back" href="javascript:ShowCtimemo2()" style="display:none">待機画面へ戻る</a>
+                    <input id="btn_back" type="submit" value="戻る" class="btn back" onclick="javascript:backTo('list_search');return false;" style="display:inline-block">
+                                                                        <input id="btn_edit" type="submit" value="編集する" class="btn decision" onclick="javascript: mySubmit2('list_edit');return false;">
+                                        </div>
+
+    <div id="cancel_cti_memo" style="display:none; width:600px; height:300px">
+        <p>オペレータメモがあれば入力してください</p>
+        <textarea id="cti_memo_tmp" maxlength="1000" onchange="javascript:$('#cti_memo_error').html('')"></textarea>
+        <span style="color:red; display:block;" id="cti_memo_error"></span>
+        <p class="center">
+            <input name="" type="submit" value="メモを登録しない" class="btn cancel" onclick="javascript:UpdateCtiemo(0);return false;">
+            <input name="" type="submit" value="メモを登録する" class="btn decision" onclick="javascript:UpdateCtiemo(1);return false;">
+        </p>
+    </div>
+
+    <div id="cancel_cti_memo2" style="display:none; width:600px; height:300px">
+        <p>オペレータメモがあれば入力してください</p>
+        <textarea id="cti_memo_tmp2" maxlength="1000" onchange="javascript:$('#cti_memo_error2').html('')"></textarea>
+        <span style="color:red; display:block;" id="cti_memo_error2"></span>
+        <p class="center">
+            <input name="" type="submit" value="メモを登録しない" class="btn cancel" onclick="javascript:UpdateCtiemo(2);return false;">
+            <input name="" type="submit" value="メモを登録する" class="btn decision" onclick="javascript:UpdateCtiemo(3);return false;">
+        </p>
+    </div>
+
+</div><!--contents -->
+</div><!--wrapper -->
+<style>
+#div_loading {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 45%;
+    left: 0;
+    z-index: 9999;
+}
+</style>
+<!-- start div_loading -->
+<div id="div_loading">
+    <div class="loading_modal_bg"></div>
+    <div class="loading_modal_window">
+        <div id="ajaxLoading" style="text-align: center; margin-top: 10px; margin-bottom: 10px;">
+            <img src="/reserva/images/new_loading_48x48.gif?v=20220809" width="48">
+        </div>
+    </div>
+</div>
+<!-- end div_loading -->
+
+    <style>
+#admit_wrap
+{
+    text-align: left;
+    border: none !important;
+}
+#admit_wrap > dl,
+#admit_wrap dt,
+#admit_wrap dd
+{
+    width: 100% !important;
+}
+.om_admit_popup {
+max-width: 420px !important;
+}
+.om_admit_popup {
+  background: #fff;
+  width: 80vw;
+  max-width: 500px;
+  border-radius: 5px;
+  max-height: 70vh;
+  padding: 30px 10px;
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10001;
+}
+
+.om_admit_popup > span {
+  display: block;
+}
+
+.om_admit_popup > span:not(:first-child) {
+  margin-top: 20px;
+}
+
+.om_admit_popup .btn-area {
+  margin: 30px 0 0;
+}
+
+.om_admit_popup .btn-area a + a {
+  margin-left: 10px;
+}
+
+.om_admit_popup_bg {
+  display: none;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  z-index: 10000;
+}
+</style>
+
+<div class="om_admit_popup" id="admit_popup" data-tomail="" data-rsv-no="" data-status="" data-url="">
+    <div class="block form" id="admit_wrap">
+        <dl>
+            <dt id="admit_errormsg"></dt>
+            <dd></dd>
+        </dl>
+    </div>
+    <input type="button" class="btn" onclick="closeAdmitPopup();return false;" value="キャンセル">
+    <input type="button" class="btn confirm" onclick="submitAdmitPopup();return false;" value="登録する">
+</div>
+
+<div class="om_admit_popup_bg"></div>
+
+
+
+                </div><!--wrapper -->
+
+            <!--  content -->
+            </form>
+        
+        <!-- ad start -->
+<style>
+.adsbygoogle-wrapper { width:100%; height: 110px; }
+.adjust_responsive { width: 320px; height: 100px; }
+@media(min-width: 500px) {
+ .adsbygoogle-wrapper { width:100%; height: 70px; }
+ .adjust_responsive { width: 468px; height: 60px; }
+}
+@media(min-width: 800px) {
+ .adsbygoogle-wrapper { width:100%; height: 100px; }
+ .adjust_responsive { width: 728px; height: 90px; }
+}
+</style>
+<div class="adsbygoogle-wrapper" style="display:inline-block;text-align:center;">
+<script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+	<ins class="adsbygoogle adjust_responsive" style="display:inline-block;" data-ad-client="ca-pub-9648664814975273">
+	</ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+</div>
+<!-- ad end -->
+
+                    <footer>
+    <!-- start Footer -->
+    <div id="Footer-Reservation-Sample-Nav">
+        <div class="inner">
+            <nav class="fn-reservation-sample">
+                <div class="fn-ttl">サンプルサイト</div>
+                <ul class="jobs-wrap">
+                    <li class="jobs-item">
+                        <div class="label"><span>サービス</span></div>
+                        <ul>
+                            <li><a href="https://reserva.be/dentistsample" target="_blank">歯科医院</a></li>
+                            <li><a href="https://reserva.be/ocularsample01" target="_blank">眼科</a></li>
+                            <li><a href="https://reserva.be/clinicsample" target="_blank">クリニック</a></li>
+                            <li><a href="https://reserva.be/nailsalonsample" target="_blank">ネイルサロン</a></li>
+                            <li><a href="https://reserva.be/hairsalonsample" target="_blank">ヘアサロン</a></li>
+                        </ul>
+                    </li>
+                    <li class="jobs-item">
+                        <div class="label"><span>スクール・アクティビティ</span></div>
+                        <ul>
+                            <li><a href="https://reserva.be/yogastudiosample" target="_blank">ヨガ教室</a></li>
+                            <li><a href="https://reserva.be/englishschoolsample" target="_blank">英会話教室</a></li>
+                            <li><a href="https://reserva.be/resecook" target="_blank">料理教室</a></li>
+                            <li><a href="https://reserva.be/kenshinsample" target="_blank">健康診断</a></li>
+                            <li><a href="https://reserva.be/sportsclubsample01" target="_blank">スポーツクラブ</a></li>
+                        </ul>
+                    </li>
+                    <li class="jobs-item">
+                        <div class="label"><span>イベント</span></div>
+                        <ul>
+                            <li><a href="https://reserva.be/seminarsample" target="_blank">採用セミナー</a></li>
+                            <li><a href="https://reserva.be/workshopssample01" target="_blank">工場見学</a></li>
+                            <li><a href="https://reserva.be/plantationsample" target="_blank">農園・ファーム</a></li>
+                            <li><a href="https://reserva.be/dinnershowsample01" target="_blank">ディナーショー</a></li>
+                            <li><a href="https://reserva.be/housingexhibitionhallsample01" target="_blank">住宅展示場見学会</a></li>
+                        </ul>
+                    </li>
+                    <li class="jobs-item">
+                        <div class="label"><span>施設</span></div>
+                        <ul>
+                            <li><a href="https://reserva.be/futsalcourtsample01" target="_blank">フットサルコート</a></li>
+                            <li><a href="https://reserva.be/musicstudiosample" target="_blank">音楽スタジオ</a></li>
+                            <li><a href="https://reserva.be/meetingroomsample" target="_blank">社内会議室</a></li>
+                            <li><a href="https://reserva.be/rentalspacesample" target="_blank">レンタルスペース</a></li>
+                            <li><a href="https://reserva.be/publicfacilitysample" target="_blank">公共施設</a></li>
+                        </ul>
+                    </li>
+                    <li class="jobs-item">
+                        <div class="label"><span>宿泊</span></div>
+                        <ul>
+                            <li><a href="https://reserva.be/shukuhakusample02" target="_blank">ホテル</a></li>
+                            <li><a href="https://reserva.be/shukuhakusample01" target="_blank">民泊</a></li>
+                            <li><a href="https://reserva.be/campsample" target="_blank">キャンプ場</a></li>
+                            <li><a href="https://reserva.be/minshukusample01" target="_blank">民宿</a></li>
+                            <li><a href="https://reserva.be/dormitorysample" target="_blank">ドミトリー</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+    <!-- end Reservation Sample Nav -->
+
+    <!-- start Reservation Footer -->
+    <div id="Footer-Reservation-Nav">
+        <div class="inner">
+            <nav class="fn-reservation">
+                <div class="fn-ttl">対応業界</div>
+                <ul>
+                    <li><a href="https://digital.reserva.be/field/local-government/" target="_blank">官公庁</a></li>
+                    <li><a href="https://digital.reserva.be/field/educational-institution/" target="_blank">大学・専門学校</a></li>
+                    <li><a href="https://digital.reserva.be/field/office-rental-lease-industry/" target="_blank">施設運営</a></li>
+                    <li><a href="https://digital.reserva.be/field/medical-institution/" target="_blank">医療機関</a></li>
+                    <li><a href="https://digital.reserva.be/field/insurance-industry/" target="_blank">保険・代理店</a></li>
+                </ul>
+            </nav>
+            <nav class="fn-reservation">
+                <div class="fn-ttl">総合案内</div>
+                <ul>
+                    <li><a href="https://biz.reserva.be/price/#reservation" target="_blank">料金・機能</a></li>
+                    <li><a href="https://support.reserva.be/hc/ja/requests/new?ticket_form_id=222718" target="_blank">お問い合わせ</a></li>
+                    <li><a href="https://support.reserva.be/hc/ja/categories/202556068" target="_blank">よくあるご質問</a></li>
+                    <li><a href="https://support.reserva.be/hc/ja/" target="_blank">操作マニュアル・ヘルプ</a></li>
+                    <li><a href="https://biz.reserva.be/security/" target="_blank">セキュリティについて</a></li>
+                    <li><a href="https://biz.reserva.be/terms-business/" target="_blank">利用規約</a></li>
+                    <li><a href="https://biz.reserva.be/privacy/" target="_blank">個人情報保護方針</a></li>
+                    <li><a href="https://biz.reserva.be/settlement1/" target="_blank">特定商取引法に基づく表示</a></li>
+                    <li><a href="https://reserva.be/rsv/about" target="_blank">運営会社</a></li>
+                </ul>
+            </nav>
+        </div><!-- ./footerInner -->
+    </div>
+    <!-- end Reservation Footer -->
+
+    <!-- start Common Footer -->
+    <div id="Footer-Common-Nav">
+        <div class="inner">
+            <nav class="fn-app">
+                <ul>
+                    <li>
+                                                    <a href="https://id.reserva.be/adm/service/detail?service=reserve" target="_blank">
+                                <img src="/images/logo-reservation.png" alt="RESERVA Reservation">
+                            </a>
+                                            </li>
+                    <li>
+                                                    <a href="https://id.reserva.be/adm/service/detail?service=integration" target="_blank">
+                                <img src="/images/logo-integration.png" alt="RESERVA Integration">
+                            </a>
+                                            </li>
+                    <li>
+                                                    <a href="https://id.reserva.be/adm/service/detail?service=mail" target="_blank">
+                                <img src="/images/logo-mail.png" alt="RESERVA Mail">
+                            </a>
+                                            </li>
+                    <li>
+                                                    <a href="https://id.reserva.be/adm/service/detail?service=coupon" target="_blank">
+                                <img src="/images/logo-coupon.png" alt="RESERVA Reservation">
+                            </a>
+                                            </li>
+                    <li>
+                                                    <a href="https://digital.reserva.be/" target="_blank">
+                                <img src="/images/logo-digital.png" alt="RESERVA Digital">
+                            </a>
+                                            </li>
+                                    </ul>
+            </nav>
+            <nav class="fn-company">
+                <ul>
+                    <li><img src="/images/logo-isms.png?v=20220131" alt="IS 757883 / ISO 27001"></li>
+                    <li><img src="/images/logo-isms-cls.png?v=20220224" alt="CLOUD 757884 / ISO 27017"></li>
+                    <li><a href="https://privacymark.jp/" target="_blank"><img src="/images/logo-Pmark.gif?v=20220131" alt="Pマーク"></a></li>
+                </ul>
+            </nav>
+            <div class="copyright">© RESERVA</div>
+        </div><!-- ./footerInner -->
+    </div>
+    <!-- end Common Footer -->
+</footer>
+<!-- end Footer -->                                <link href="/reserva/css/flexnav.css?v=20220809" rel="stylesheet" type="text/css" />
+        <script src="/reserva/js/jquery.flexnav.js?v=20220809" type="text/javascript"></script>
+        <script type="text/javascript">$(".flexnav").flexNav();</script>
+
+        <script>
+            $(function() {
+                $(".panel-btn").click(function(){
+                    var clickPanel = $("+.panel",this);
+                    clickPanel.toggle();
+                    $(".panel").not(clickPanel).slideUp(0);
+                    try {
+                        $(".panel:visible").prev().css();
+                        $(".panel:hidden").prev().css();
+                    } catch(e) {}
+                    return false;
+                });
+            });
+
+            $(document).ready(function() {
+                var ff = navigator.userAgent.indexOf('Firefox') != -1;
+                if (!ff) {
+                                                                $('#pageno').val('1');
+                                    }
+            });
+        </script>
+
+        <link rel="stylesheet" href="/reserva/skins/flat/aero.css?v=20220809">
+
+
+        <script src="/reserva/js/easyselectbox.min.js?v=20220809"></script>
+        <script>
+            (function ($) {
+                $('.design-select-box').easySelectBox();
+            })(jQuery);
+        </script>
+
+        <script type="text/javascript" src="/reserva/js/jquery-ui.min.js?v=20220809"></script>
+        <script type="text/javascript" src="/reserva/js/jquery.ui.datepicker-ja.js?v=20220809"></script>
+
+
+
+                    <script>
+                $(function() {
+                    $( ".full.date" ).datepicker({
+                        showOn: "button",
+                        buttonImage: "/reserva/images/icon_calendar.png?v=20220809",
+                        buttonImageOnly: true,
+                        dateFormat: 'yy/mm/dd'
+                    });
+                    $( "input.date" ).datepicker({
+                        showOn: "button",
+                        buttonImage: "/reserva/images/icon_calendar.png?v=20220809",
+                        buttonImageOnly: true,
+                        dateFormat: 'yy/mm/dd'
+                    });
+                    $( ".size_m.date" ).datepicker({
+                        showOn: "button",
+                        buttonImage: "/reserva/images/icon_calendar.png?v=20220809",
+                        buttonImageOnly: true,
+                        dateFormat: 'yy/mm/dd'
+                    });
+                });
+            </script>
+        
+        <link rel="stylesheet" type="text/css" href="/reserva/fancybox/jquery.fancybox.css?v=20220809" media="screen" />
+
+        <script src="/reserva/fancybox/jquery.fancybox.js?v=20220809"></script>
+        <script src="/reserva/fancybox/jquery.mousewheel-3.0.6.pack.js?v=20220809"></script>
+
+                    <script type="text/javascript">
+                $(document).ready(function() {
+                    $('.fancybox').fancybox();
+                });
+
+                // ツールチップ
+                var touch = touchDevice();
+                toolchip($('.toolchip-trigger'), touch);
+            </script>
+            <script src="/reserva/js/fancybox.js?v=20220809"></script>
+                <script type="text/javascript" src="/reserva/js/jquery.tablefix.js?v=20220809"></script>
+        <script>
+            $(function() {
+                $('#tablefix2').tablefix({width: 930, fixCols: 1});
+            });
+        </script>
+
+                    <script>
+                jQuery(function($) {
+                    //data-hrefの属性を持つtrを選択しclassにclickableを付加
+                    $('tr[data-href]').addClass('clickable');
+                    $(document).on('click', 'tr[data-href]', function(e) {
+                                                    //e.targetはクリックした要素自体、それがa要素以外であれば
+                            if (!$(e.target).is('a') && !$(e.target).is('i')) {
+                                //その要素の先祖要素で一番近いtrの
+                                //data-href属性の値に書かれているURLに遷移する
+                                window.location = $(e.target).closest('tr').data('href');
+                            }
+                                            });
+                });
+            </script>
+        
+        
+        
+                    <script>
+                (function(i, s, o, g, r, a, m) {
+                    i['GoogleAnalyticsObject'] = r;
+                    i[r] = i[r] || function() {
+                        (i[r].q = i[r].q || []).push(arguments)
+                    }, i[r].l = 1 * new Date();
+                    a = s.createElement(o),
+                    m = s.getElementsByTagName(o)[0];
+                    a.async = 1;
+                    a.src = g;
+                    m.parentNode.insertBefore(a, m)
+                })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+
+                ga('create', 'UA-55860408-2', 'auto');
+                ga('send', 'pageview');
+            </script>
+        
+        
+            </body>
+</html>

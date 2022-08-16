@@ -29,13 +29,17 @@ def get_workbook():
     gc = gspread.service_account(filename="/tmp/apikey.json")
     workbook = gc.open_by_key(parameters.get_parameter("ichiba_google_spreadsheet_key"))
     return workbook
-workbook = get_workbook()
 
 # Reserva のアカウントID, Reserva の施設ID (ホール), 何日先まで予約するか
 def get_reserva_parameters():
     reserva_system_info = parameters.get_parameter('reserva_systeminfo', transform="json")
     return reserva_system_info['bus_id'], reserva_system_info['svd_id'], reserva_system_info['day_range'], reserva_system_info['auth_token']
-RESERVA_BUS_ID, RESERVA_SVD_ID, RESERVA_DAY_RANGE, AUTH_TOKEN = get_reserva_parameters()
+
+def handler_init():
+    global RESERVA_BUS_ID, RESERVA_SVD_ID, RESERVA_DAY_RANGE, AUTH_TOKEN
+    RESERVA_BUS_ID, RESERVA_SVD_ID, RESERVA_DAY_RANGE, AUTH_TOKEN = get_reserva_parameters()
+    global workbook
+    workbook = get_workbook()
 
 def ret_json(status_code:int, json_dict:dict) -> dict[str, Any]:
     return {
@@ -62,12 +66,17 @@ def reserva_login():
                 'adm_pass': reserva_pass})
     logger.info("reserva login succeeded")
 
-# Reserva の予約申請メールに含まれる URL を基に、予約関連の情報を取得する
-def get_reservation_info_from_reserva(reserva_rsv_url:str) -> dict[str, str]:
-    reserva_login()
+class DiscontinuousReservationError(Exception):
+    def __init__(self, slot1:str, slot2:str):
+        self.slot1 = slot1
+        self.slot2 = slot2
 
-    r = session.get(reserva_rsv_url)
-    soup = BeautifulSoup(r.content, "html.parser")
+    def __str__(self):
+        return f"連続していない複数の予約はサポートされていません。予約されている時間帯: [{self.slot1}] [{self.slot2}]"
+
+# Reserva の予約詳細ページのHTMLを基に、予約関連の情報を取得する
+def get_reservation_info_from_reserva_html(content:str) -> dict[str, str]:
+    soup = BeautifulSoup(content, "html.parser")
     left = soup.find(id='div_reserva_left')
     left_dd = left.find_all('dd')
     right = soup.find(id='div_reserva_right')
@@ -75,14 +84,40 @@ def get_reservation_info_from_reserva(reserva_rsv_url:str) -> dict[str, str]:
 
     ret = {}
     ret['hidden_rsv_no'] = soup.find("input", attrs={'name': 'search_rsv_no', 'type': 'hidden'})['value']
-    ret['rsv_time'] = soup.find("input", attrs={'id': 'zoom_rsv_all_time', 'type': 'hidden'})['value']
     ret['name'] = str(left_dd[0].text).strip()
     ret['name_kana'] = str(left_dd[1].text).strip()
     ret['email'] = str(left_dd[2].text).strip()
     ret['phone'] = str(left_dd[3].text).strip()
     ret['visible_rsv_no'] = str(right_dd[0].text).strip()
     ret['rsv_status'] = str(soup.find(id='span_status').text).strip() # 予約確定 とか
+
+    rsvtime = soup.find("input", attrs={'id': 'zoom_rsv_all_time', 'type': 'hidden'})['value']
+    times = re.split('<BR>', rsvtime)
+    ret_starts_at = None
+    ret_ends_at = None
+    year = '0'
+    month = '0'
+    day = '0'
+    for t in times:
+        m = re.match(r'([0-9]+)/([0-9]+)/([0-9]+) ([0-9]+):([0-9]+)[^0-9]+([0-9]+):([0-9]+)', t)
+        (year, month, day, s_hour, s_min, e_hour, e_min) = m.groups()
+        starts_at = f'{int(s_hour):02}:{int(s_min):02}'
+        ends_at = f'{int(e_hour):02}:{int(e_min):02}'
+        if ret_ends_at and ret_ends_at != starts_at:
+            raise DiscontinuousReservationError(times[0], times[1])
+        ret_ends_at = ends_at
+        if ret_starts_at is None:
+            ret_starts_at = starts_at
+    ret['rsv_time'] = f'{year}/{month}/{day} {ret_starts_at}〜{ret_ends_at}'
+
     return ret
+
+# Reserva の予約申請メールに含まれる URL を基に、予約関連の情報を取得する
+def get_reservation_info_from_reserva(reserva_rsv_url:str) -> dict[str, str]:
+    reserva_login()
+
+    r = session.get(reserva_rsv_url)
+    return get_reservation_info_from_reserva_html(r.content)
 
 # 事前登録シートから当該メールアドレスを元に登録情報を取り出す
 def get_registered_info_from_spreadsheet(email:str) -> dict[str, str]:
@@ -168,11 +203,11 @@ def approve(rsv_no:str, key_no:str) -> str:
     )
 
 # 予約拒否
-def deny(rsv_no:str) -> str:
+def deny(rsv_no:str, message:str) -> str:
     return reserva_api(
         rsv_no,
         3,
-        '予約には事前登録が必要です。事前登録フォームからメールアドレスをご登録ください。事前登録に関する情報は回覧板にてお伝えしておりますのでご確認ください。'
+        message
     )
 
 def append_log_to_spreadsheet(rsv_info, registered_info, log_info):
@@ -201,6 +236,7 @@ def append_log_to_spreadsheet(rsv_info, registered_info, log_info):
 # 引数として Reserva の予約申請メールに記載されている確認用の URL が必要
 @logger.inject_lambda_context(log_event=True)
 def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
+    handler_init()
     print(event['headers'])
     if not 'authorization' in event['headers']:
         return ret_json(401, "Unauthorized")
@@ -232,12 +268,13 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
     if not reserva_command in ('request', 'cancel'):
         return error_json('invalid reserva command', f'{reserva_command}')
 
-    rsv_info = get_reservation_info_from_reserva(reserva_url)
-    registered_info = get_registered_info_from_spreadsheet(rsv_info['email'])
-    log_info = []
-    response_code = 200
-    remotelock:RemoteLock = RemoteLock(registered_info, rsv_info)
+
     try:
+        rsv_info = get_reservation_info_from_reserva(reserva_url)
+        registered_info = get_registered_info_from_spreadsheet(rsv_info['email'])
+        log_info = []
+        response_code = 200
+        remotelock:RemoteLock = RemoteLock(registered_info, rsv_info)
         if reserva_command == 'request':
             # 予約申請メールが来た場合
             # 既に予約確定済
@@ -262,7 +299,7 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
                 # 却下
                 # 鍵番号はまだ発行されておらず Reserva で却下するだけ (RemoteLock は何もしなくてOK)
                 log_info.append("request: deny")
-                deny_status = deny(rsv_info['hidden_rsv_no'])
+                deny_status = deny(rsv_info['hidden_rsv_no'], '予約には事前登録が必要です。事前登録フォームからメールアドレスをご登録ください。事前登録に関する情報は回覧板にてお伝えしておりますのでご確認ください。')
                 log_info.append(deny_status)
                 if deny_status != 'success':
                     response_code = 400
@@ -276,6 +313,13 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
                 log_info.append("success")
             else:
                 log_info.append("RemoteLock側で既にキャンセルされています。")
+    except DiscontinuousReservationError as e:
+        logger.exception(f"DiscontinuousReservationError: {e}")
+        log_info.append("request: deny")
+        deny_status = deny(rsv_info['hidden_rsv_no'], e)
+        log_info.append(deny_status)
+        if deny_status != 'success':
+            response_code = 400
     except:
         logger.exception("system error")
         log_info.append("system error")
@@ -462,6 +506,7 @@ def reserva_create_reservation(user:dict, target_list:list):
 
 @logger.inject_lambda_context(log_event=True)
 def batch_handler(event: dict, context: LambdaContext) -> dict[str, Any]:
+    handler_init()
     remotelock:RemoteLock = RemoteLock()
     users:list[dict] = remotelock.get_users()
     reserva_login()

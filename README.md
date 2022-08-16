@@ -48,7 +48,7 @@ Test a single function by invoking it directly with a test event. An event is a 
 Run functions locally and invoke them with the `sam local invoke` command.
 
 ```bash
-reserva-request-lambda$ sam local invoke HelloWorldFunction --event events/event.json
+reserva-request-lambda$ sam local invoke ReservaRequestFunction --event test1-event.json --profile private
 ```
 
 The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
