@@ -32,6 +32,19 @@ https://journal.lampetty.net/entry/call-external-api-in-gas
 
 スターにする条件は別途 GMail の機能にて設定されています。
 
+# テスト方法
+
+```bash
+$ . ./env
+$ pytest
+```
+
+# デプロイ方法
+
+```bash
+$ sam build
+$ sam deploy --profile <yourprofile>
+```
 
 ## Use the SAM CLI to build and test locally
 

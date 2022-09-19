@@ -24,6 +24,6 @@ def test_reserva_html_info():
     assert str(e.value) == "連続していない複数の予約はサポートされていません。予約されている時間帯: [2022/08/12 09:00～13:00] [2022/08/12 17:00～21:00]"
 
 def test_remotelock_rsv_time():
-    assert get_transformed_rsv_time_from_rsv_info(read_rsv_info_from_reservation_html_file("./tests/unit/html/reserva_20220812_single.html")) == ('2022-08-07T17:00:00', '2022-08-07T21:00:00')
-    assert get_transformed_rsv_time_from_rsv_info(read_rsv_info_from_reservation_html_file("./tests/unit/html/reserva_20220812_double.html")) == ('2022-08-12T09:00:00', '2022-08-12T17:00:00')
-    assert get_transformed_rsv_time_from_rsv_info(read_rsv_info_from_reservation_html_file("./tests/unit/html/reserva_20220812_triple.html")) == ('2022-08-12T09:00:00', '2022-08-12T21:00:00')
+    assert get_transformed_rsv_time_from_rsv_info(read_rsv_info_from_reservation_html_file("./tests/unit/html/reserva_20220812_single.html")) == ('2022-08-07T16:30:00', '2022-08-07T21:00:00')
+    assert get_transformed_rsv_time_from_rsv_info(read_rsv_info_from_reservation_html_file("./tests/unit/html/reserva_20220812_double.html")) == ('2022-08-12T08:30:00', '2022-08-12T17:00:00')
+    assert get_transformed_rsv_time_from_rsv_info(read_rsv_info_from_reservation_html_file("./tests/unit/html/reserva_20220812_triple.html")) == ('2022-08-12T08:30:00', '2022-08-12T21:00:00')

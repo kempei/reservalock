@@ -6,6 +6,7 @@ import re
 import time
 import json
 import boto3
+import datetime
 
 logger = Logger()
 
@@ -194,6 +195,15 @@ class RemoteLock:
         rsvtime = self.rsv_info['rsv_time']
         m = re.match(r'([0-9]+)/([0-9]+)/([0-9]+) ([0-9]+):([0-9]+)[^0-9]+([0-9]+):([0-9]+)', rsvtime)
         (year, month, day, s_hour, s_min, e_hour, e_min) = m.groups()
+
+        # 開始時間にn分のバッファを持たせるためのロジック
+        starts_at_datetime = datetime.datetime(int(year), int(month), int(day), int(s_hour), int(s_min))
+        remotelock_buffer_min:int = int(parameters.get_parameter('remotelock_buffer_min'))
+        td_buffer_min = datetime.timedelta(minutes=remotelock_buffer_min)
+        starts_at_datetime -= td_buffer_min
+        s_hour = str(starts_at_datetime.hour) # 日付が変更されることはないので hour と min だけ補正する
+        s_min = str(starts_at_datetime.minute)
+
         starts_at = f'{int(year):02}-{int(month):02}-{int(day):02}T{int(s_hour):02}:{int(s_min):02}:00'
         ends_at = f'{int(year):02}-{int(month):02}-{int(day):02}T{int(e_hour):02}:{int(e_min):02}:00'
         return (starts_at, ends_at)
