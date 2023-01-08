@@ -1,0 +1,10 @@
+{
+    "headers": {
+        "authorization": "ichibatoken"
+    },
+    "queryStringParameters": {
+        "scope": "month",
+        "format": "reservation",
+        "start": "2023-01-01"
+    }
+}

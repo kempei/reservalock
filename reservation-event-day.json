@@ -1,0 +1,10 @@
+{
+    "headers": {
+        "authorization": "ichibatoken"
+    },
+    "queryStringParameters": {
+        "scope": "day",
+        "format": "calendar",
+        "start": "2023-01-08"
+    }
+}

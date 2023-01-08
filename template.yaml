@@ -43,6 +43,15 @@ Resources:
           - ssm:PutParameters
           - ssm:PutParameter
           Resource: '*'
+        - Sid: S3BucketPolicy
+          Effect: Allow
+          Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:DeleteObject
+          - s3:DeleteObjectVersion
+          Resource: 'arn:aws:s3:::{{resolve:ssm:reserva_bucket_info}}/*'
 
   CreateAccessFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -80,6 +89,65 @@ Resources:
           - ssm:PutParameters
           - ssm:PutParameter
           Resource: '*'
+        - Sid: S3BucketPolicy
+          Effect: Allow
+          Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:DeleteObject
+          - s3:DeleteObjectVersion
+          Resource: 'arn:aws:s3:::{{resolve:ssm:reserva_bucket_info}}/*'
+
+  ReportFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./reserva_request
+      Handler: report.handler
+      Runtime: python3.9
+      Architectures:
+        - arm64
+      Layers:
+        - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPython:13
+        - !Ref GSpreadLayer
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowHeaders: 
+            - "*"
+          AllowMethods: 
+            - GET
+          AllowOrigins: 
+            - "*"          
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          POWERTOOLS_SERVICE_NAME: create_access
+          TZ: Asia/Tokyo
+      Policies:
+      - Statement:
+        - Sid: SSMDescribeParametersPolicy
+          Effect: Allow
+          Action:
+          - ssm:DescribeParameters
+          Resource: '*'
+        - Sid: SSMPutGetParameterPolicy
+          Effect: Allow
+          Action:
+          - ssm:GetParameters
+          - ssm:GetParameter
+          - ssm:PutParameters
+          - ssm:PutParameter
+          Resource: '*'
+        - Sid: S3BucketPolicy
+          Effect: Allow
+          Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:DeleteObject
+          - s3:DeleteObjectVersion
+          Resource: 'arn:aws:s3:::{{resolve:ssm:reserva_bucket_info}}/*'
 
   GSpreadLayer:
     Type: AWS::Serverless::LayerVersion
@@ -92,7 +160,11 @@ Resources:
       BuildMethod: python3.9
 
 Outputs:
-  MyFunctionUrlEndpoint:
-    Description: "My Lambda Function URL Endpoint"
+  ReservaRequestUrlEndpoint:
+    Description: "ReservaRequest Function URL Endpoint"
     Value:
       Fn::GetAtt: ReservaRequestFunctionUrl.FunctionUrl
+  ReportUrlEndpoint:
+    Description: "Report Function URL Endpoint"
+    Value:
+      Fn::GetAtt: ReportFunctionUrl.FunctionUrl
