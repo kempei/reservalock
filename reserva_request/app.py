@@ -116,7 +116,6 @@ def get_reservation_info_from_reserva(reserva_rsv_url: str) -> dict[str, str]:
     reserva_login()
 
     r = session.get(reserva_rsv_url)
-    print(r.content)
     return get_reservation_info_from_reserva_html(r.content)
 
 # Reserva の Ajax API を呼び出す
