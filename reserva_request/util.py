@@ -3,7 +3,13 @@ from aws_lambda_powertools.utilities import parameters
 from typing import Any
 import json
 import gspread
-from datetime import datetime
+from datetime import datetime, timedelta
+
+import hashlib
+import json
+import boto3
+from threading import Lock
+from functools import lru_cache, wraps
 
 
 def ret_json(status_code: int, json_dict: dict) -> dict[str, Any]:
@@ -18,8 +24,98 @@ def error_json(title: str, message: str) -> dict[str, Any]:
     return ret_json(400, {'title': title, 'message': message})
 
 
+def hybrid_dict_cache(
+        local_ttl_argname: str = "local_ttl",
+        s3_ttl_argname: str = "s3_ttl",
+        default_local_ttl: int = 300,
+        default_s3_ttl: int = 3600 * 24,
+        __local_only: bool = False):
+
+    s3 = boto3.resource('s3')
+    s3bucket = s3.bucket(
+        parameters.get_parameter('reserva_bucket_info'))
+    cache: dict = {}
+
+    def make_key(**kwargs):
+        sha512str: str = hashlib.sha512(json.dumps(
+            kwargs, sort_keys=True)).hexdigest()
+        return f'{sha512str}.json'
+    '''
+    メタデータ: ['Metadata']
+    Last Modified: ['LastModified']
+    '''
+
+    def try_s3_cache(key: str) -> dict:
+        if __local_only:
+            return None
+
+        obj = s3bucket.Object(key)
+        res: dict = obj.get()
+        if res is None:
+            # キャッシュミス
+            return None
+        # メタデータで期限のチェックをする
+        metadata = res['Metadata']
+        expired: datetime = datetime.fromisoformat(metadata['Expired'])
+        lastModified: datetime = res['LastModified']
+        if lastModified > expired:
+            # キャッシュ切れ
+            return None
+        # dict で返す
+        body = res['Body'].read().decode('utf-8')
+        return json.loads(body)
+
+    def regist_s3_cache(key: str, data: dict, expired_sec: int):
+        if __local_only:
+            return
+
+        now: datetime = datetime.now()
+        delta = timedelta(seconds=expired_sec)
+        expired: datetime = now + delta
+
+        obj = s3bucket.Object(key)
+        obj.put(Body=json.dumps(data, ensure_ascii=False),
+                Metadata={'Expired': expired.isoformat()})
+
+    def wrapper(f):
+
+        inner.local_expire: datetime = None
+        inner.s3_expire: datetime = None
+
+        @wraps(f)
+        def inner(*args, **kwargs):
+            local_ttl: int = default_local_ttl
+            if local_ttl_argname in kwargs:
+                local_ttl = int(kwargs[local_ttl_argname])
+            s3_ttl: int = default_s3_ttl
+            if s3_ttl_argname in kwargs:
+                s3_ttl = int(kwargs[s3_ttl_argname])
+            key: str = make_key(**kwargs)
+            data = None
+            if key in cache:
+                data = cache[key]
+                if datetime.utcnow() > local_expire:
+                    cache.pop(key)
+                    data = None
+                else:
+                    return data
+
+            data = try_s3_cache(key)
+            if data is None:
+                data = f(*args, **kwargs)
+                s3_expire = datetime.utcnow() + timedelta(seconds=s3_ttl)
+                regist_s3_cache(key, data, s3_expire)
+            cache[key] = data
+            local_expire = datetime.utcnow() + timedelta(seconds=local_ttl)
+            return data
+
+        return inner
+
+    return wrapper
+
+
 class GSpreadsheetUtil:
-    @classmethod
+    @ classmethod
     def get_workbook(cls):
         apikey = parameters.get_parameter(
             "ichiba_google_apikey", transform="json")
@@ -31,7 +127,7 @@ class GSpreadsheetUtil:
         return workbook
 
     # 事前登録シートから当該メールアドレスを元に登録情報を取り出す
-    @classmethod
+    @ classmethod
     def get_registered_info_from_spreadsheet(cls, workbook, email: str) -> dict[str, str]:
         sheet = workbook.worksheet("事前登録フォーム回答")
         cell_list = sheet.findall(email)

@@ -43,12 +43,17 @@ def reserva_login():
     reserva_userid = reserva_userinfo['userid']
     reserva_pass = reserva_userinfo['password']
     r = session.get("https://reserva.be/rsv/dashboard")
+    soup = BeautifulSoup(r.content, "html.parser")
+    form_element = soup.find('input', attrs={'name': 'form_token'})
+    form_token = form_element['value']
     r = session.post("https://id-sso.reserva.be/login/business",
                      data={'next_check_flg': 0,
                            'adm_no': '',
                            'mode': 'login',
                            'adm_id': reserva_userid,
-                           'adm_pass': reserva_pass})
+                           'adm_pass': reserva_pass,
+                           'form_token': form_token,
+                           'twofactorauth_required': 0})
     logger.info("reserva login succeeded")
 
 
@@ -111,6 +116,7 @@ def get_reservation_info_from_reserva(reserva_rsv_url: str) -> dict[str, str]:
     reserva_login()
 
     r = session.get(reserva_rsv_url)
+    print(r.content)
     return get_reservation_info_from_reserva_html(r.content)
 
 # Reserva の Ajax API を呼び出す
@@ -190,6 +196,7 @@ def append_log_to_spreadsheet(rsv_info, registered_info, log_info):
 
 @logger.inject_lambda_context(log_event=True)
 def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
+    log_info = []
     handler_init()
     print(event['headers'])
     if not 'authorization' in event['headers']:
@@ -226,7 +233,6 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
         rsv_info = get_reservation_info_from_reserva(reserva_url)
         registered_info = GSpreadsheetUtil.get_registered_info_from_spreadsheet(
             workbook, rsv_info['email'])
-        log_info = []
         response_code = 200
         remotelock: RemoteLock = RemoteLock(registered_info, rsv_info)
         if reserva_command == 'request':
