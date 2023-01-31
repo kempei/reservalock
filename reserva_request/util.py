@@ -3,13 +3,12 @@ from aws_lambda_powertools.utilities import parameters
 from typing import Any
 import json
 import gspread
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import hashlib
 import json
 import boto3
-from threading import Lock
-from functools import lru_cache, wraps
+from functools import wraps
 
 
 def ret_json(status_code: int, json_dict: dict) -> dict[str, Any]:
@@ -32,13 +31,13 @@ def hybrid_dict_cache(
         __local_only: bool = False):
 
     s3 = boto3.resource('s3')
-    s3bucket = s3.bucket(
+    s3bucket = s3.Bucket(
         parameters.get_parameter('reserva_bucket_info'))
     cache: dict = {}
 
     def make_key(**kwargs):
         sha512str: str = hashlib.sha512(json.dumps(
-            kwargs, sort_keys=True)).hexdigest()
+            kwargs, sort_keys=True).encode('utf-8')).hexdigest()
         return f'{sha512str}.json'
     '''
     メタデータ: ['Metadata']
@@ -49,38 +48,32 @@ def hybrid_dict_cache(
         if __local_only:
             return None
 
-        obj = s3bucket.Object(key)
-        res: dict = obj.get()
-        if res is None:
+        objs = list(s3bucket.objects.filter(Prefix=key))
+        if not (len(objs) == 1 and objs[0].key == key):
             # キャッシュミス
             return None
-        # メタデータで期限のチェックをする
+
+        obj = s3bucket.Object(key)
+        res: dict = obj.get()
         metadata = res['Metadata']
-        expired: datetime = datetime.fromisoformat(metadata['Expired'])
-        lastModified: datetime = res['LastModified']
-        if lastModified > expired:
+        expired: datetime = datetime.fromisoformat(metadata['expired'])
+        print(f'expired={expired}')
+        if datetime.now(timezone.utc) > expired:
             # キャッシュ切れ
             return None
         # dict で返す
         body = res['Body'].read().decode('utf-8')
         return json.loads(body)
 
-    def regist_s3_cache(key: str, data: dict, expired_sec: int):
+    def regist_s3_cache(key: str, data: dict, expired: datetime):
         if __local_only:
             return
 
-        now: datetime = datetime.now()
-        delta = timedelta(seconds=expired_sec)
-        expired: datetime = now + delta
-
         obj = s3bucket.Object(key)
         obj.put(Body=json.dumps(data, ensure_ascii=False),
-                Metadata={'Expired': expired.isoformat()})
+                Metadata={'expired': expired.isoformat()})
 
     def wrapper(f):
-
-        inner.local_expire: datetime = None
-        inner.s3_expire: datetime = None
 
         @wraps(f)
         def inner(*args, **kwargs):
@@ -93,8 +86,8 @@ def hybrid_dict_cache(
             key: str = make_key(**kwargs)
             data = None
             if key in cache:
-                data = cache[key]
-                if datetime.utcnow() > local_expire:
+                (data, local_expire) = cache[key]
+                if datetime.now(timezone.utc) > local_expire:
                     cache.pop(key)
                     data = None
                 else:
@@ -103,10 +96,11 @@ def hybrid_dict_cache(
             data = try_s3_cache(key)
             if data is None:
                 data = f(*args, **kwargs)
-                s3_expire = datetime.utcnow() + timedelta(seconds=s3_ttl)
+                s3_expire = datetime.now(
+                    timezone.utc) + timedelta(seconds=s3_ttl)
                 regist_s3_cache(key, data, s3_expire)
-            cache[key] = data
-            local_expire = datetime.utcnow() + timedelta(seconds=local_ttl)
+            cache[key] = (data,
+                          datetime.now(timezone.utc) + timedelta(seconds=local_ttl))
             return data
 
         return inner
