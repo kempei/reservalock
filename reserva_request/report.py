@@ -1,13 +1,12 @@
 from remotelock import RemoteLock
 from typing import Any
-from util import GSpreadsheetUtil, ret_json, error_json
+from util import GSpreadsheetUtil, ret_json, error_json, hybrid_dict_cache
 
 from aws_lambda_powertools.utilities import parameters
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
 import calendar
 from datetime import datetime
-from functools import cache
 
 # logger についてはここに書いておかないと初期化時の injection でエラーになる。
 logger = Logger()
@@ -46,7 +45,7 @@ class ReservationReporter:
                 user = self.registered_users[email]
                 user['guests'].append(guest)
 
-    @cache
+    @hybrid_dict_cache(default_local_ttl=3600, default_s3_ttl=43200)
     def __get_registered_users_and_community_members(self):
         # users を取得する
         # 列は { 0:'timestamp', 1:'email', 2:'user_name', 3:'member_name', 4:'block', 5:'kumi', 6:'objective' }

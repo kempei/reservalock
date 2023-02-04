@@ -35,8 +35,8 @@ def hybrid_dict_cache(
         parameters.get_parameter('reserva_bucket_info'))
     cache: dict = {}
 
-    def make_key(**kwargs):
-        sha512str: str = hashlib.sha512(json.dumps(
+    def make_key(f, **kwargs):
+        sha512str: str = f.__name__ + hashlib.sha512(json.dumps(
             kwargs, sort_keys=True).encode('utf-8')).hexdigest()
         return f'{sha512str}.json'
     '''
@@ -83,7 +83,7 @@ def hybrid_dict_cache(
             s3_ttl: int = default_s3_ttl
             if s3_ttl_argname in kwargs:
                 s3_ttl = int(kwargs[s3_ttl_argname])
-            key: str = make_key(**kwargs)
+            key: str = make_key(f, **kwargs)
             data = None
             if key in cache:
                 (data, local_expire) = cache[key]
