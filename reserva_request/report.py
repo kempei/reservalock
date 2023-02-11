@@ -12,12 +12,49 @@ from datetime import datetime
 logger = Logger()
 
 
+def init_reporter_object(target_year: int, target_month: int, start_date: datetime):
+    reporter: ReservationReporter = ReservationReporter(
+        datetime.fromisoformat(start_date), target_year, target_month)
+    reporter.collect_data()
+    return reporter
+
+
+@hybrid_dict_cache(default_local_ttl=3600, default_s3_ttl=43200)
+def get_registered_users_and_community_members_from_workbook():
+    # users を取得する
+    # 列は { 0:'timestamp', 1:'email', 2:'user_name', 3:'member_name', 4:'block', 5:'kumi', 6:'objective' }
+    workbook = GSpreadsheetUtil.get_workbook()
+    cell_users = workbook.sheet1.get_all_values()
+    cell_users.pop(0)  # 先頭行は不要なので削除する
+    members = {}
+    users = {}
+    for cell_user in cell_users:
+        user = {}
+        user['email'] = cell_user[1]
+        user['reg_timestamp'] = cell_user[0]
+        user['user_name'] = cell_user[2]
+        user['objective'] = cell_user[6]
+        user['guests'] = []
+        users[cell_user[1]] = user  # email が主キーとなる
+
+        member_name = cell_user[3]
+        member_block = cell_user[4]
+        member_kumi = cell_user[5]
+        member_id = f'{member_block}{member_kumi} {member_name}'
+        if not member_id in members:
+            members[member_id] = {'id': member_id, 'block': member_block,
+                                  'kumi': member_kumi, 'member_name': member_name, 'users': []}
+        user['member_id'] = member_id
+        members[member_id]['users'].append(user)
+
+    return users, members
+
+
 class ReservationReporter:
     def __init__(self, start_date: datetime, target_year: int, target_month: int) -> None:
         self.start_date = start_date
         self.target_year = target_year
         self.target_month = target_month
-        self.workbook = GSpreadsheetUtil.get_workbook()
         self.remotelock: RemoteLock = RemoteLock()
         self.registered_users: list = None
         self.community_members: list = None
@@ -27,8 +64,9 @@ class ReservationReporter:
 
     # 登録ユーザ(registered_users)、町内会員(community_members)、定期登録ユーザ(access_users)、都度登録ゲスト(access_guests) を収集する
     def collect_data(self):
-        self.registered_users, self.community_members = self.__get_registered_users_and_community_members()
+        self.registered_users, self.community_members = get_registered_users_and_community_members_from_workbook()
 
+        # キャッシュ
         _wday, lastday = calendar.monthrange(
             self.target_year, self.target_month)
         self.access_users = self.remotelock.get_users(self.start_date, lastday)
@@ -44,35 +82,6 @@ class ReservationReporter:
             if 'access_guest' == guest['type']:
                 user = self.registered_users[email]
                 user['guests'].append(guest)
-
-    @hybrid_dict_cache(default_local_ttl=3600, default_s3_ttl=43200)
-    def __get_registered_users_and_community_members(self):
-        # users を取得する
-        # 列は { 0:'timestamp', 1:'email', 2:'user_name', 3:'member_name', 4:'block', 5:'kumi', 6:'objective' }
-        cell_users = self.workbook.sheet1.get_all_values()
-        cell_users.pop(0)  # 先頭行は不要なので削除する
-        members = {}
-        users = {}
-        for cell_user in cell_users:
-            user = {}
-            user['email'] = cell_user[1]
-            user['reg_timestamp'] = cell_user[0]
-            user['user_name'] = cell_user[2]
-            user['objective'] = cell_user[6]
-            user['guests'] = []
-            users[cell_user[1]] = user  # email が主キーとなる
-
-            member_name = cell_user[3]
-            member_block = cell_user[4]
-            member_kumi = cell_user[5]
-            member_id = f'{member_block}{member_kumi} {member_name}'
-            if not member_id in members:
-                members[member_id] = {'id': member_id, 'block': member_block,
-                                      'kumi': member_kumi, 'member_name': member_name, 'users': []}
-            user['member_id'] = member_id
-            members[member_id]['users'].append(user)
-
-        return users, members
 
     def report(self) -> None:
         reported_members = []
@@ -125,19 +134,6 @@ class ReservationReporter:
             ret.append(item)
         return ret
 
-    def make_reservation_list(self):
-        ret = []
-        for user in self.access_users:
-            ret.extend(self.build_reservation_item(user))
-
-        for guest in self.access_guests:
-            ret.extend(self.build_reservation_item(guest))
-
-        # 昇順でソート
-        ret.sort(key=lambda x: x['start_time'])
-
-        return ret
-
     '''
       {
         start: new Date(),
@@ -163,38 +159,58 @@ class ReservationReporter:
                 registered_user = self.registered_users[actor['email']]
                 item['title'] = registered_user['user_name']
 
-            if start_time.year == self.today.year and start_time.month == self.today.month and start_time.day == self.today.day:
-                item['color'] = 'primary'
-                if scope == "day":
-                    day_flag = True
-                    if actor['type'] == 'access_user':
-                        item['icon'] = "repeat"  # access_user は定期予約なので repeat
-                        item[
-                            'description'] = f'{start_time.hour:02}:00-{end_time.hour:02}:00 定期予約(町内会公認団体)'
-                    else:
-                        # community_member
-                        cm = self.community_members[registered_user['member_id']]
-                        item['icon'] = "person"
-                        item['description'] = f'{start_time.hour:02}:00-{end_time.hour:02}:00 {cm["block"]} {cm["kumi"]} {cm["member_name"]}'
+            if scope == "day" and start_time.year == self.target_year and start_time.month == self.target_month and start_time.day == self.start_date.day:
+                day_flag = True
+                if actor['type'] == 'access_user':
+                    item['icon'] = "repeat"  # access_user は定期予約なので repeat
+                    item[
+                        'description'] = f'{start_time.hour:02}:00-{end_time.hour:02}:00 定期予約(町内会公認団体)'
+                else:
+                    # community_member
+                    cm = self.community_members[registered_user['member_id']]
+                    item['icon'] = "person"
+                    item['description'] = f'{start_time.hour:02}:00-{end_time.hour:02}:00 {cm["block"]} {cm["kumi"]} {cm["member_name"]}'
 
-            if start_time < self.today:
-                item['color'] = 'secondary'
+            item['color'] = 'secondary'
 
             if scope == "month" or day_flag:
                 ret.append(item)
 
         return ret
 
-    def make_calendar_list(self, scope: str):
-        ret = []
 
-        for user in self.access_users:
-            ret.extend(self.build_calendar_item(user, scope))
+@hybrid_dict_cache()
+def make_reservation_list(target_year: int, target_month: int, start_date: datetime, local_ttl: int, s3_ttl: int):
+    reporter: ReservationReporter = init_reporter_object(
+        target_year, target_month, start_date)
+    ret = []
+    for user in reporter.access_users:
+        ret.extend(reporter.build_reservation_item(user))
 
-        for guest in self.access_guests:
-            ret.extend(self.build_calendar_item(guest, scope))
+    for guest in reporter.access_guests:
+        ret.extend(reporter.build_reservation_item(guest))
 
-        return ret
+    # 昇順でソート
+    ret.sort(key=lambda x: x['start_time'])
+
+    return ret
+
+
+@hybrid_dict_cache()
+def make_calendar_list(target_year: int, target_month: int, start_date: datetime, scope: str, local_ttl: int, s3_ttl: int):
+    reporter: ReservationReporter = init_reporter_object(
+        target_year, target_month, start_date)
+    ret = []
+
+    for user in reporter.access_users:
+        ret.extend(reporter.build_calendar_item(user, scope))
+
+    print(f"access_guests_len={len(reporter.access_guests)}")
+
+    for guest in reporter.access_guests:
+        ret.extend(reporter.build_calendar_item(guest, scope))
+
+    return ret
 
 
 @logger.inject_lambda_context(log_event=True)
@@ -222,19 +238,22 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
         return error_json('invalid parameter', f'invalid target year {target_year}')
     if target_month < 1 or target_month > 12:
         return error_json('invalid parameter', f'invalid target month {target_month}')
+    today: datetime = datetime.now()
+    target_month_is_past = (today.year == target_year and today.month > target_month) or (
+        target_month < today.year)
+    local_ttl = 3600 * 24  # 1 day
+    s3_ttl = 3600 * 24 * 30 * 12 * 100  # 100 years
+    if not target_month_is_past:
+        local_ttl = 3600  # 1 hour
+        s3_ttl = 3600 * 6  # 6 hours
 
     logger.info(
         f"format: {format}, scope: {scope}, start_date: {start_date}, target_year: {target_year}, target_month: {target_month}, target_day: {target_day}")
 
-    reporter: ReservationReporter = ReservationReporter(
-        datetime.fromisoformat(start_date), target_year, target_month)
-
-    reporter.collect_data()
-
     if format == "reservation":
-        return ret_json(200, reporter.make_reservation_list())
+        return ret_json(200, make_reservation_list(target_year, target_month, start_date, local_ttl, s3_ttl))
     if format == "calendar":
         if scope == "month" or scope == "day":
-            return ret_json(200, reporter.make_calendar_list(scope))
+            return ret_json(200, make_calendar_list(target_year, target_month, start_date, scope, local_ttl, s3_ttl))
 
     return ret_json(400, {"message": f"Bad parameter: format={format}, scope={scope}"})
