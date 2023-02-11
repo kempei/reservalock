@@ -29,29 +29,22 @@ Resources:
           POWERTOOLS_SERVICE_NAME: reserva_request
           TZ: Asia/Tokyo
       Policies:
-      - Statement:
-        - Sid: SSMDescribeParametersPolicy
-          Effect: Allow
-          Action:
-          - ssm:DescribeParameters
-          Resource: '*'
-        - Sid: SSMPutGetParameterPolicy
-          Effect: Allow
-          Action:
-          - ssm:GetParameters
-          - ssm:GetParameter
-          - ssm:PutParameters
-          - ssm:PutParameter
-          Resource: '*'
-        - Sid: S3BucketPolicy
-          Effect: Allow
-          Action:
-          - s3:PutObject
-          - s3:GetObject
-          - s3:GetObjectVersion
-          - s3:DeleteObject
-          - s3:DeleteObjectVersion
-          Resource: 'arn:aws:s3:::{{resolve:ssm:reserva_bucket_info}}/*'
+        - S3FullAccessPolicy:
+            BucketName: '{{resolve:ssm:reserva_bucket_info}}'
+        - Statement:
+          - Sid: SSMDescribeParametersPolicy
+            Effect: Allow
+            Action:
+            - ssm:DescribeParameters
+            Resource: '*'
+          - Sid: SSMPutGetParameterPolicy
+            Effect: Allow
+            Action:
+            - ssm:GetParameters
+            - ssm:GetParameter
+            - ssm:PutParameters
+            - ssm:PutParameter
+            Resource: '*'
 
   CreateAccessFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -75,29 +68,22 @@ Resources:
           POWERTOOLS_SERVICE_NAME: create_access
           TZ: Asia/Tokyo
       Policies:
-      - Statement:
-        - Sid: SSMDescribeParametersPolicy
-          Effect: Allow
-          Action:
-          - ssm:DescribeParameters
-          Resource: '*'
-        - Sid: SSMPutGetParameterPolicy
-          Effect: Allow
-          Action:
-          - ssm:GetParameters
-          - ssm:GetParameter
-          - ssm:PutParameters
-          - ssm:PutParameter
-          Resource: '*'
-        - Sid: S3BucketPolicy
-          Effect: Allow
-          Action:
-          - s3:PutObject
-          - s3:GetObject
-          - s3:GetObjectVersion
-          - s3:DeleteObject
-          - s3:DeleteObjectVersion
-          Resource: 'arn:aws:s3:::{{resolve:ssm:reserva_bucket_info}}/*'
+        - S3FullAccessPolicy:
+            BucketName: '{{resolve:ssm:reserva_bucket_info}}'
+        - Statement:
+          - Sid: SSMDescribeParametersPolicy
+            Effect: Allow
+            Action:
+            - ssm:DescribeParameters
+            Resource: '*'
+          - Sid: SSMPutGetParameterPolicy
+            Effect: Allow
+            Action:
+            - ssm:GetParameters
+            - ssm:GetParameter
+            - ssm:PutParameters
+            - ssm:PutParameter
+            Resource: '*'
 
   ReportFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -125,29 +111,22 @@ Resources:
           POWERTOOLS_SERVICE_NAME: create_access
           TZ: Asia/Tokyo
       Policies:
-      - Statement:
-        - Sid: SSMDescribeParametersPolicy
-          Effect: Allow
-          Action:
-          - ssm:DescribeParameters
-          Resource: '*'
-        - Sid: SSMPutGetParameterPolicy
-          Effect: Allow
-          Action:
-          - ssm:GetParameters
-          - ssm:GetParameter
-          - ssm:PutParameters
-          - ssm:PutParameter
-          Resource: '*'
-        - Sid: S3BucketPolicy
-          Effect: Allow
-          Action:
-          - s3:PutObject
-          - s3:GetObject
-          - s3:GetObjectVersion
-          - s3:DeleteObject
-          - s3:DeleteObjectVersion
-          Resource: 'arn:aws:s3:::{{resolve:ssm:reserva_bucket_info}}/*'
+        - S3FullAccessPolicy:
+            BucketName: '{{resolve:ssm:reserva_bucket_info}}'
+        - Statement:
+          - Sid: SSMDescribeParametersPolicy
+            Effect: Allow
+            Action:
+            - ssm:DescribeParameters
+            Resource: '*'
+          - Sid: SSMPutGetParameterPolicy
+            Effect: Allow
+            Action:
+            - ssm:GetParameters
+            - ssm:GetParameter
+            - ssm:PutParameters
+            - ssm:PutParameter
+            Resource: '*'
 
   GSpreadLayer:
     Type: AWS::Serverless::LayerVersion

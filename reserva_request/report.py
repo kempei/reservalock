@@ -79,7 +79,7 @@ class ReservationReporter:
         # registered_user の下['guests']にアクセスゲストがぶら下がる
         for guest in self.access_guests:
             email = guest['email']
-            if 'access_guest' == guest['type']:
+            if email and 'access_guest' == guest['type']:
                 user = self.registered_users[email]
                 user['guests'].append(guest)
 
@@ -156,8 +156,11 @@ class ReservationReporter:
             if actor['type'] == 'access_user':
                 item['title'] = actor['name']
             else:
-                registered_user = self.registered_users[actor['email']]
-                item['title'] = registered_user['user_name']
+                if actor['email']:
+                    registered_user = self.registered_users[actor['email']]
+                    item['title'] = registered_user['user_name']
+                else:
+                    item['title'] = actor['name']
 
             if scope == "day" and start_time.year == self.target_year and start_time.month == self.target_month and start_time.day == self.start_date.day:
                 day_flag = True
