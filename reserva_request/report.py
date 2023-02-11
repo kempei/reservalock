@@ -127,10 +127,15 @@ class ReservationReporter:
                 item['name'] = actor['name']
                 item['block'] = '定期予約(町内会公認団体)'
             else:
-                registered_user = self.registered_users[actor['email']]
-                item['name'] = registered_user['user_name']
-                cm = self.community_members[registered_user['member_id']]
-                item['block'] = f'{cm["block"]} {cm["kumi"]} {cm["member_name"]}'
+                if actor['email']:
+                    registered_user = self.registered_users[actor['email']]
+                    item['name'] = registered_user['user_name']
+                    cm = self.community_members[registered_user['member_id']]
+                    item['block'] = f'{cm["block"]} {cm["kumi"]} {cm["member_name"]}'
+                else:
+                    item['name'] = actor['name']
+                    item['block'] = '-'
+
             ret.append(item)
         return ret
 
