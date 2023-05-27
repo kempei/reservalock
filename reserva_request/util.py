@@ -78,6 +78,10 @@ def hybrid_dict_cache(
 
         @wraps(f)
         def inner(*args, **kwargs):
+            cache_refresh: bool = False
+            if '__cache_refresh' in kwargs:
+                cache_refresh = kwargs.pop('__cache_refresh')
+
             local_ttl: int = default_local_ttl
             if local_ttl_argname in kwargs:
                 local_ttl = int(kwargs[local_ttl_argname])
@@ -86,7 +90,7 @@ def hybrid_dict_cache(
                 s3_ttl = int(kwargs[s3_ttl_argname])
             key: str = make_key(f, *args, **kwargs)
             data = None
-            if key in cache:
+            if key in cache and not cache_refresh:
                 (data, local_expire) = cache[key]
                 if datetime.now(timezone.utc) > local_expire:
                     cache.pop(key)
@@ -94,7 +98,9 @@ def hybrid_dict_cache(
                 else:
                     return data
 
-            data = try_s3_cache(key)
+            data = None
+            if not cache_refresh:
+                data = try_s3_cache(key)
             if data is None:
                 data = f(*args, **kwargs)
                 s3_expire = datetime.now(

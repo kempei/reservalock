@@ -6,7 +6,7 @@ from aws_lambda_powertools.utilities import parameters
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
 import calendar
-from datetime import datetime
+from datetime import datetime, date
 
 # logger についてはここに書いておかないと初期化時の injection でエラーになる。
 logger = Logger()
@@ -20,7 +20,7 @@ def init_reporter_object(target_year: int, target_month: int, start_date: dateti
 
 
 @hybrid_dict_cache(default_local_ttl=3600, default_s3_ttl=43200)
-def get_registered_users_and_community_members_from_workbook():
+def get_registered_users_and_community_members_from_workbook(__cache_refresh: bool = False):
     # users を取得する
     # 列は { 0:'timestamp', 1:'email', 2:'user_name', 3:'member_name', 4:'block', 5:'kumi', 6:'objective' }
     workbook = GSpreadsheetUtil.get_workbook()
@@ -188,7 +188,7 @@ class ReservationReporter:
 
 
 @hybrid_dict_cache()
-def make_reservation_list(target_year: int, target_month: int, start_date: datetime, local_ttl: int, s3_ttl: int):
+def make_reservation_list(target_year: int, target_month: int, start_date: datetime, local_ttl: int, s3_ttl: int,  __cache_refresh: bool = False):
     reporter: ReservationReporter = init_reporter_object(
         target_year, target_month, start_date)
     ret = []
@@ -205,7 +205,7 @@ def make_reservation_list(target_year: int, target_month: int, start_date: datet
 
 
 @hybrid_dict_cache()
-def make_calendar_list(target_year: int, target_month: int, start_date: datetime, scope: str, local_ttl: int, s3_ttl: int):
+def make_calendar_list(target_year: int, target_month: int, start_date: datetime, scope: str, local_ttl: int, s3_ttl: int, __cache_refresh: bool = False):
     reporter: ReservationReporter = init_reporter_object(
         target_year, target_month, start_date)
     ret = []
@@ -233,12 +233,20 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
     format: str = params['format']  # reservation or calendar
 
     scope: str = None
-    if 'scope' in params:
+    if format == "calendar":
+        if not 'scope' in params:
+            return error_json("Bad parameter", "missing 'scope'")
         scope = params['scope']  # month or day
+
+    cache_refresh: bool = False
+    if 'cacheRefresh' in params:
+        cache_refresh = params['cacheRefresh']
 
     if not 'start' in params:
         return error_json("Bad parameter", "missing 'start'")
-    start_date: str = params['start']  # YYYY-MM-DD
+    start_date: str = params['start']  # YYYY-MM-DD or "TODAY"
+    if start_date == 'today':
+        start_date = date.today().strftime('%Y-%m-%d')
     target_year: int = int(start_date[:4])
     target_month: int = int(start_date[5:7])
     target_day: int = int(start_date[8:10])
@@ -259,9 +267,9 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
         f"format: {format}, scope: {scope}, start_date: {start_date}, target_year: {target_year}, target_month: {target_month}, target_day: {target_day}")
 
     if format == "reservation":
-        return ret_json(200, make_reservation_list(target_year, target_month, start_date, local_ttl, s3_ttl))
+        return ret_json(200, make_reservation_list(target_year, target_month, start_date, local_ttl, s3_ttl, cache_refresh))
     if format == "calendar":
         if scope == "month" or scope == "day":
-            return ret_json(200, make_calendar_list(target_year, target_month, start_date, scope, local_ttl, s3_ttl))
+            return ret_json(200, make_calendar_list(target_year, target_month, start_date, scope, local_ttl, s3_ttl, cache_refresh))
 
     return ret_json(400, {"message": f"Bad parameter: format={format}, scope={scope}"})

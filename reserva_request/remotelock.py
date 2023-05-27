@@ -25,6 +25,47 @@ class RemoteLock:
         self.registered_info: dict[str, Any] = registered_info
         self.rsv_info: dict[str, Any] = rsv_info
 
+    # 対象月のイベントを返す。オートロックの情報は意味を持たないので捨てている。
+    def get_events(self, target_year: int, target_month: int) -> list[dict]:
+        end_of_read: bool = False
+        ret = []
+        page: int = 1
+        while not end_of_read:
+            data, meta = self.api(
+                method='GET',
+                path='events',
+                params={
+                    'page': page,
+                    'per_page': 50
+                },
+                with_metadata=True
+            )
+            total_page = meta['total_pages']
+            if page == total_page:
+                end_of_read = True
+            page += 1
+
+            if self.empty_data_check(data, 'get_events', 'NO EVENTS'):
+                return []
+            for item in data:
+                if item['type'] in ['unlocked_event', 'access_denied']:
+                    st_data = {}
+                    print(item['attributes']['time_zone'])
+                    occurred_at = datetime.fromisoformat(
+                        item['attributes']['occurred_at'])
+                    st_data['time'] = occurred_at
+                    st_data['event_type'] = item['type']
+                    if item['type'] == 'unlocked_event':
+                        st_data['status'] = item['attributes']['status']
+                        st_data['user_type'] = item['attributes']['associated_resource_type']
+                        st_data['user_id'] = item['attributes']['associated_resource_id']
+                    if occurred_at.year == target_year and occurred_at.month == target_month:
+                        ret.append(st_data)
+                    if occurred_at.year < target_year or (occurred_at.year == target_year and occurred_at.month < target_month):
+                        end_of_read = True
+
+        return ret
+
     # access user を返す。定期予約が設定してある access user のみが返される。
     def get_users(self, start_day: datetime, target_day_range: int = 31, exp_day_range=365) -> list[dict]:
         end_of_read: bool = False
@@ -343,7 +384,7 @@ class RemoteLock:
         token = self.__get_token()
         headers = {
             'Authorization': f'Bearer {token}',
-            'Accept': 'pplication/vnd.lockstate+json; version=1'
+            'Accept': 'application/vnd.lockstate+json; version=1'
         }
         r = None
         if method == 'POST':
