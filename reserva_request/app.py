@@ -7,7 +7,7 @@ from aws_lambda_powertools.utilities import parameters
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import base64
 import urllib.parse
@@ -244,6 +244,20 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
                 log_info.append("request: approve")
                 log_info.append('既にキャンセル済みです')
             elif registered_info:
+                # 登録者による予約なので、あとは公認団体予約日より前ならOK
+                allowable_day = datetime.now() + \
+                    timedelta(days=RESERVA_DAY_RANGE)
+                r = rsv_info['rsv_time'][:10]  # 2023/01/01 形式
+                reserve_day = datetime(int(r[:4]), int(r[5:7]), int(r[8:10]))
+                if reserve_day > allowable_day:
+                    # 却下
+                    log_info.append("request: deny")
+                    deny_status = deny(
+                        rsv_info['hidden_rsv_no'], '本日時点で ' + str(allowable_day)[:10] + ' までが予約可能な日のため、頂いた日付(' + str(reserve_day)[:10] + ')では予約はできません。')
+                    log_info.append(deny_status)
+                    if deny_status != 'success':
+                        response_code = 400
+
                 # 申請OK
                 # 鍵番号を発行してから Approve する
                 log_info.append("request: approve")
