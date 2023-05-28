@@ -246,7 +246,7 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
             elif registered_info:
                 # 登録者による予約なので、あとは公認団体予約日より前ならOK
                 allowable_day = datetime.now() + \
-                    timedelta(days=RESERVA_DAY_RANGE)
+                    timedelta(days=(RESERVA_DAY_RANGE - 7))
                 r = rsv_info['rsv_time'][:10]  # 2023/01/01 形式
                 reserve_day = datetime(int(r[:4]), int(r[5:7]), int(r[8:10]))
                 if reserve_day > allowable_day:
