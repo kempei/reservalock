@@ -242,9 +242,7 @@ $RECYCLE.BIN/
 */build/*
 
 # SAM
-.aws-sam
+.aws-sam*
 samconfig.toml
 *event.json
 README.TOOLKIT.md
-
-# End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
