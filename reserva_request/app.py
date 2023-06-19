@@ -481,6 +481,11 @@ def reserva_create_reservation(user: dict, target_list: list):
 def batch_handler(event: dict, context: LambdaContext) -> dict[str, Any]:
     handler_init()
     remotelock: RemoteLock = RemoteLock()
+
+    # Delete old access guests
+    remotelock.delete_old_guests()
+
+    # Book Automation
     users: list[dict] = remotelock.get_users(datetime.now(), RESERVA_DAY_RANGE)
     reserva_login()
     for user in users:
@@ -490,4 +495,5 @@ def batch_handler(event: dict, context: LambdaContext) -> dict[str, Any]:
             reserva_create_reservation(user, target_list)
         if len(exception_list) > 0:
             remotelock.update_access_exceptions(user, exception_list)
+
     return ret_json(200, {"message": "finished normally"})

@@ -286,6 +286,57 @@ class RemoteLock:
         )
         return key_no
 
+    def delete_old_guests(self) -> None:
+        remote_lock_expired_days: int = int(
+            parameters.get_parameter("remotelock_expired_days_for_access_guest")
+        )
+        expired_count: int = 0
+
+        end_of_read: bool = False
+        page: int = 1
+        while not end_of_read:
+            data, meta = self.api(
+                method="GET",
+                path="access_persons",
+                params={
+                    "type": ["access_guest"],
+                    "page": page,
+                    "per_page": 50,
+                    "sort": "ends_at",
+                    "attributes[status][]": ["deactivated", "expired"],
+                },
+                with_metadata=True,
+            )
+            total_page = meta["total_pages"]
+            if page == total_page:
+                end_of_read = True
+            page += 1
+
+            for guest in data:
+                status = guest["attributes"]["status"]
+                ends_at: datetime = datetime.fromisoformat(
+                    guest["attributes"]["ends_at"]
+                )
+                expired_target: datetime = datetime.now() - timedelta(
+                    days=remote_lock_expired_days
+                )
+                if status == "deactivated" or ends_at < expired_target:
+                    expired_count += 1
+                    id = guest["id"]
+                    name = guest["attributes"]["name"]
+                    print(
+                        f"FOR DEBUG: to delete [{status}][{id}][{name}][{str(ends_at)}]"
+                    )
+                    r = self.api(method="DELETE", path=f"/access_persons/{id}")
+
+        logger.info(
+            {
+                "service": "remotelock",
+                "command": "delete_old_guests",
+                "deleted_count": str(expired_count),
+            }
+        )
+
     def cancel_guest(self) -> bool:
         r = self.api(
             method="GET",
@@ -433,6 +484,30 @@ class RemoteLock:
             if r.status_code != 200:
                 self.__error(params, r)
                 raise ResponseError(r.status_code, r.reason)
+        elif method == "DELETE":
+            # support Too many request
+            sleep_time = 3
+            while True:
+                r = requests.delete(
+                    f"https://api.remotelock.jp/{path}",
+                    headers=headers,  # no parameters
+                )
+                if r.status_code == 429:
+                    logger.info(
+                        {
+                            "service": "remotelock",
+                            "command": "delete",
+                            "reason": "too many request - http status 429",
+                            "sleep time": f"{sleep_time} secs",
+                        }
+                    )
+                    time.sleep(sleep_time)
+                    sleep_time *= 2
+                    continue
+                if r.status_code != 204 and r.status_code != 200:
+                    self.__error(params, r)
+                    raise ResponseError(r.status_code, r.reason)
+                break
         else:
             raise RuntimeError(f"method must be POST or GET or PUT ({method})")
         if len(r.content) > 0:
@@ -557,7 +632,7 @@ class RemoteLock:
             # JSON を読む
             for access_info in access_info_list:
                 # 例外日のエントリは事前処理済なので処理しない
-                if "unused-date" in access_info:
+                if "unused-date" in access_info or not "day" in access_info:
                     continue
                 target_wd = weekday_dict[access_info["day"]]
                 no, wd = self.get_nth_dow(t.year, t.month, t.day)
