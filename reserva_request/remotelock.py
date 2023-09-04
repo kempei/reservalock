@@ -122,15 +122,6 @@ class RemoteLock:
 
     # access guest を返す。access guest は数が多いため、ターゲットとなる年月のものだけを抽出する。
     def get_access_guests(self, target_year: int, target_month: int) -> list[dict]:
-        ret = []
-        ret.extend(self.__get_access_guests("expired", target_year, target_month))
-        ret.extend(self.__get_access_guests("current", target_year, target_month))
-        ret.extend(self.__get_access_guests("upcoming", target_year, target_month))
-        return ret
-
-    def __get_access_guests(
-        self, status: str, target_year: int, target_month: int
-    ) -> list[dict]:
         end_of_read: bool = False
         ret = []
         page: int = 1
@@ -143,7 +134,7 @@ class RemoteLock:
                     "page": page,
                     "per_page": 50,
                     "sort": "-starts_at",
-                    "attributes[status]": [status],
+                    "attributes[status][]": ["expired", "current", "upcoming"],
                 },
                 with_metadata=True,
             )

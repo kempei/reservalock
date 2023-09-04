@@ -281,18 +281,23 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
                     )
                     log_info.append(deny_status)
                     if deny_status != "success":
-                        response_code = 400
-
-                # 申請OK
-                # 鍵番号を発行してから Approve する
-                log_info.append("request: approve")
-                key_no = remotelock.register_guest()
-                approve_status = approve(rsv_info["hidden_rsv_no"], key_no)
-                log_info.append(approve_status)
-                if approve_status != "success":
-                    remotelock.cancel_guest()
-                    if approve_status != "already cancelled":
-                        response_code = 400
+                        logger.warning(
+                            f"deny api hasn't succeeded. [status={deny_status}] [rsv_info={rsv_info}]"
+                        )
+                else:
+                    # 申請OK
+                    # 鍵番号を発行してから Approve する
+                    log_info.append("request: approve")
+                    key_no = remotelock.register_guest()
+                    approve_status = approve(rsv_info["hidden_rsv_no"], key_no)
+                    log_info.append(approve_status)
+                    if approve_status != "success":
+                        remotelock.cancel_guest()
+                        if approve_status != "already cancelled":
+                            logger.error(
+                                f"illegal status. remotelock guest is cancelled. approve_status={approve_status}] [rsv_info={rsv_info}]"
+                            )
+                            response_code = 400
             else:
                 # 却下
                 # 鍵番号はまだ発行されておらず Reserva で却下するだけ (RemoteLock は何もしなくてOK)
@@ -303,6 +308,9 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
                 )
                 log_info.append(deny_status)
                 if deny_status != "success":
+                    logger.warning(
+                        f"deny api hasn't succeeded. [status={deny_status}] [rsv_info={rsv_info}]"
+                    )
                     response_code = 400
         elif reserva_command == "cancel":
             # キャンセル通知が来た場合
