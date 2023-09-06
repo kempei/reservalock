@@ -15,11 +15,11 @@ Resources:
     Properties:
       CodeUri: ./reserva_request
       Handler: app.handler
-      Runtime: python3.9
+      Runtime: python3.11
       Architectures:
         - arm64
       Layers:
-        - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPython:13
+        - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:42
         - !Ref GSpreadLayer
       FunctionUrlConfig:
         AuthType: NONE
@@ -51,11 +51,11 @@ Resources:
     Properties:
       CodeUri: ./reserva_request
       Handler: app.batch_handler
-      Runtime: python3.9
+      Runtime: python3.11
       Architectures:
         - arm64
       Layers:
-        - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPython:13
+        - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:42
         - !Ref GSpreadLayer
       Events:
         CreateAccessFunctionEvent:
@@ -90,11 +90,11 @@ Resources:
     Properties:
       CodeUri: ./reserva_request
       Handler: report.handler
-      Runtime: python3.9
+      Runtime: python3.11
       Architectures:
         - arm64
       Layers:
-        - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPython:13
+        - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:42
         - !Ref GSpreadLayer
       FunctionUrlConfig:
         AuthType: NONE
@@ -128,15 +128,56 @@ Resources:
             - ssm:PutParameter
             Resource: '*'
 
+  StoreBatchFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./reserva_request
+      Handler: storebatch.handler
+      Runtime: python3.11
+      Architectures:
+        - arm64
+      Layers:
+        - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:42
+        - arn:aws:lambda:ap-northeast-1:770693421928:layer:Klayers-p311-arm64-pandas:2
+        - !Ref GSpreadLayer
+      Events:
+        StoreBatchFunctionEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 12 ? * * *)
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          POWERTOOLS_SERVICE_NAME: store_batch
+          TZ: Asia/Tokyo
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: '{{resolve:ssm:reserva_bucket_info}}'
+        - Statement:
+          - Sid: SSMDescribeParametersPolicy
+            Effect: Allow
+            Action:
+            - ssm:DescribeParameters
+            Resource: '*'
+          - Sid: SSMPutGetParameterPolicy
+            Effect: Allow
+            Action:
+            - ssm:GetParameters
+            - ssm:GetParameter
+            - ssm:PutParameters
+            - ssm:PutParameter
+            Resource: '*'
+
+
   GSpreadLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: Layer description
       ContentUri: 'gspread_layer/'
       CompatibleRuntimes:
-        - python3.9
+        - python3.11
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: python3.11
 
 Outputs:
   ReservaRequestUrlEndpoint:
