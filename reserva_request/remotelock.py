@@ -21,9 +21,7 @@ class ResponseError(Exception):
 
 
 class RemoteLock:
-    def __init__(
-        self, registered_info: dict[str, Any] = None, rsv_info: dict[str, Any] = None
-    ) -> None:
+    def __init__(self, registered_info: dict[str, Any] = None, rsv_info: dict[str, Any] = None) -> None:
         self.registered_info: dict[str, Any] = registered_info
         self.rsv_info: dict[str, Any] = rsv_info
 
@@ -50,36 +48,22 @@ class RemoteLock:
                 if item["type"] in ["unlocked_event", "access_denied"]:
                     st_data = {}
                     print(item["attributes"]["time_zone"])
-                    occurred_at = datetime.fromisoformat(
-                        item["attributes"]["occurred_at"]
-                    )
+                    occurred_at = datetime.fromisoformat(item["attributes"]["occurred_at"])
                     st_data["time"] = occurred_at
                     st_data["event_type"] = item["type"]
                     if item["type"] == "unlocked_event":
                         st_data["status"] = item["attributes"]["status"]
-                        st_data["user_type"] = item["attributes"][
-                            "associated_resource_type"
-                        ]
-                        st_data["user_id"] = item["attributes"][
-                            "associated_resource_id"
-                        ]
-                    if (
-                        occurred_at.year == target_year
-                        and occurred_at.month == target_month
-                    ):
+                        st_data["user_type"] = item["attributes"]["associated_resource_type"]
+                        st_data["user_id"] = item["attributes"]["associated_resource_id"]
+                    if occurred_at.year == target_year and occurred_at.month == target_month:
                         ret.append(st_data)
-                    if occurred_at.year < target_year or (
-                        occurred_at.year == target_year
-                        and occurred_at.month < target_month
-                    ):
+                    if occurred_at.year < target_year or (occurred_at.year == target_year and occurred_at.month < target_month):
                         end_of_read = True
 
         return ret
 
     # access user を返す。定期予約が設定してある access user のみが返される。
-    def get_users(
-        self, start_day: datetime, target_day_range: int = 31, exp_day_range=365
-    ) -> list[dict]:
+    def get_users(self, start_day: datetime, target_day_range: int = 31, exp_day_range=365) -> list[dict]:
         end_of_read: bool = False
         ret = []
         page: int = 1
@@ -143,9 +127,7 @@ class RemoteLock:
                 end_of_read = True
             page += 1
 
-            if self.empty_data_check(
-                data, "get_expired_access_guests", "NO ACCESS GUESTS"
-            ):
+            if self.empty_data_check(data, "get_expired_access_guests", "NO ACCESS GUESTS"):
                 return []
             for item in data:
                 st_data = self.make_access_guest_data(item)
@@ -154,9 +136,7 @@ class RemoteLock:
                 slot_month: int = int(day[5:7])
                 if slot_year == target_year and slot_month == target_month:
                     ret.append(st_data)
-                if slot_year < target_year or (
-                    slot_year == target_year and slot_month < target_month
-                ):
+                if slot_year < target_year or (slot_year == target_year and slot_month < target_month):
                     end_of_read = True
 
         return ret
@@ -174,34 +154,18 @@ class RemoteLock:
         ga = item["attributes"]
         starts_at = ga["starts_at"]
         ends_at = ga["ends_at"]
-        m_start = re.match(
-            r"([0-9]+)-([0-9]+)-([0-9]+)T([0-9]+):([0-9]+):([0-9]+)", starts_at
-        )
+        m_start = re.match(r"([0-9]+)-([0-9]+)-([0-9]+)T([0-9]+):([0-9]+):([0-9]+)", starts_at)
         (s_year, s_month, s_day, s_hour, s_min, s_sec) = m_start.groups()
-        m_end = re.match(
-            r"([0-9]+)-([0-9]+)-([0-9]+)T([0-9]+):([0-9]+):([0-9]+)", ends_at
-        )
+        m_end = re.match(r"([0-9]+)-([0-9]+)-([0-9]+)T([0-9]+):([0-9]+):([0-9]+)", ends_at)
         (e_year, e_month, e_day, e_hour, e_min, e_sec) = m_end.groups()
 
-        s_datetime = datetime(
-            int(s_year), int(s_month), int(s_day), int(s_hour), int(s_min), int(s_sec)
-        )
-        e_datetime = datetime(
-            int(e_year), int(e_month), int(e_day), int(e_hour), int(e_min), int(e_sec)
-        )
+        s_datetime = datetime(int(s_year), int(s_month), int(s_day), int(s_hour), int(s_min), int(s_sec))
+        e_datetime = datetime(int(e_year), int(e_month), int(e_day), int(e_hour), int(e_min), int(e_sec))
 
-        slot1 = datetime(
-            int(s_year), int(s_month), int(s_day), 7, 0, 0
-        )  # 早朝枠 5:00-9:00
-        slot2 = datetime(
-            int(s_year), int(s_month), int(s_day), 10, 0, 0
-        )  # 午前枠 9:00-13:00
-        slot3 = datetime(
-            int(s_year), int(s_month), int(s_day), 15, 0, 0
-        )  # 午後枠 13:00-17:00
-        slot4 = datetime(
-            int(s_year), int(s_month), int(s_day), 19, 0, 0
-        )  # 夜枠 17:00-21:00
+        slot1 = datetime(int(s_year), int(s_month), int(s_day), 7, 0, 0)  # 早朝枠 5:00-9:00
+        slot2 = datetime(int(s_year), int(s_month), int(s_day), 10, 0, 0)  # 午前枠 9:00-13:00
+        slot3 = datetime(int(s_year), int(s_month), int(s_day), 15, 0, 0)  # 午後枠 13:00-17:00
+        slot4 = datetime(int(s_year), int(s_month), int(s_day), 19, 0, 0)  # 夜枠 17:00-21:00
 
         slots = []
         dtstr: str = f"{s_year}/{s_month}/{s_day}"
@@ -249,9 +213,7 @@ class RemoteLock:
         key_no = r["attributes"]["pin"]
         r = self.api(
             path=f"access_persons/{guest_id}/accesses",
-            params={
-                "attributes": {"accessible_id": lock_id, "accessible_type": "lock"}
-            },
+            params={"attributes": {"accessible_id": lock_id, "accessible_type": "lock"}},
         )
         try:
             r = self.api(
@@ -278,9 +240,7 @@ class RemoteLock:
         return key_no
 
     def delete_old_guests(self) -> None:
-        remote_lock_expired_days: int = int(
-            parameters.get_parameter("remotelock_expired_days_for_access_guest")
-        )
+        remote_lock_expired_days: int = int(parameters.get_parameter("remotelock_expired_days_for_access_guest"))
         expired_count: int = 0
 
         end_of_read: bool = False
@@ -305,19 +265,13 @@ class RemoteLock:
 
             for guest in data:
                 status = guest["attributes"]["status"]
-                ends_at: datetime = datetime.fromisoformat(
-                    guest["attributes"]["ends_at"]
-                )
-                expired_target: datetime = datetime.now() - timedelta(
-                    days=remote_lock_expired_days
-                )
+                ends_at: datetime = datetime.fromisoformat(guest["attributes"]["ends_at"])
+                expired_target: datetime = datetime.now() - timedelta(days=remote_lock_expired_days)
                 if status == "deactivated" or ends_at < expired_target:
                     expired_count += 1
                     id = guest["id"]
                     name = guest["attributes"]["name"]
-                    print(
-                        f"FOR DEBUG: to delete [{status}][{id}][{name}][{str(ends_at)}]"
-                    )
+                    print(f"FOR DEBUG: to delete [{status}][{id}][{name}][{str(ends_at)}]")
                     r = self.api(method="DELETE", path=f"/access_persons/{id}")
 
         logger.info(
@@ -335,9 +289,7 @@ class RemoteLock:
             params={"type": ["access_guest"], "sort": "-created_at", "per_page": 50},
         )
 
-        if self.empty_data_check(
-            r, "deactivate_access_guest", "NO ACCESS GUEST (ALREADY CANCELLED?)"
-        ):
+        if self.empty_data_check(r, "deactivate_access_guest", "NO ACCESS GUEST (ALREADY CANCELLED?)"):
             return []
 
         rsv_no = self.rsv_info["visible_rsv_no"]
@@ -400,12 +352,8 @@ class RemoteLock:
         (year, month, day, s_hour, s_min, e_hour, e_min) = m.groups()
 
         # 開始時間にn分のバッファを持たせるためのロジック
-        starts_at_datetime = datetime(
-            int(year), int(month), int(day), int(s_hour), int(s_min)
-        )
-        remotelock_buffer_min: int = int(
-            parameters.get_parameter("remotelock_buffer_min")
-        )
+        starts_at_datetime = datetime(int(year), int(month), int(day), int(s_hour), int(s_min))
+        remotelock_buffer_min: int = int(parameters.get_parameter("remotelock_buffer_min"))
         td_buffer_min = timedelta(minutes=remotelock_buffer_min)
         starts_at_datetime -= td_buffer_min
         # 日付が変更されることはないので hour と min だけ補正する
@@ -447,9 +395,7 @@ class RemoteLock:
         }
         r = None
         if method == "POST":
-            r = requests.post(
-                f"https://api.remotelock.jp/{path}", headers=headers, json=params
-            )
+            r = requests.post(f"https://api.remotelock.jp/{path}", headers=headers, json=params)
             if r.status_code == 409:
                 logger.warn(
                     {
@@ -462,16 +408,12 @@ class RemoteLock:
                 self.__error(params, r)
                 raise ResponseError(r.status_code, r.reason)
         elif method == "GET":
-            r = requests.get(
-                f"https://api.remotelock.jp/{path}", headers=headers, params=params
-            )
+            r = requests.get(f"https://api.remotelock.jp/{path}", headers=headers, params=params)
             if r.status_code != 200:
                 self.__error(params, r)
                 raise ResponseError(r.status_code, r.reason)
         elif method == "PUT":
-            r = requests.put(
-                f"https://api.remotelock.jp/{path}", headers=headers, json=params
-            )
+            r = requests.put(f"https://api.remotelock.jp/{path}", headers=headers, json=params)
             if r.status_code != 200:
                 self.__error(params, r)
                 raise ResponseError(r.status_code, r.reason)
@@ -541,14 +483,10 @@ class RemoteLock:
             Type="String",
             Overwrite=True,
         )
-        return parameters.get_parameter(
-            "remotelock_token", force_fetch=True, transform="json"
-        )
+        return parameters.get_parameter("remotelock_token", force_fetch=True, transform="json")
 
     def __get_token(self) -> dict[str, str]:
-        remotelock_token = parameters.get_parameter(
-            "remotelock_token", transform="json"
-        )
+        remotelock_token = parameters.get_parameter("remotelock_token", transform="json")
         expires_at: int = int(remotelock_token["expires_at"])
         epoch_now: int = int(time.time())
         if expires_at <= epoch_now + 120:  # 有効期限が切れているか、今から2分以内に有効期限が切れる
@@ -557,9 +495,7 @@ class RemoteLock:
 
     def empty_data_check(self, data, command, guest_id):
         if data is None or len(data) == 0:
-            logger.warn(
-                {"service": "remotelock", "command": command, "guest_id": guest_id}
-            )
+            logger.warn({"service": "remotelock", "command": command, "guest_id": guest_id})
             return True
         return False
 

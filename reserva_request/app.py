@@ -268,7 +268,9 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
                 allowable_day = datetime.now() + timedelta(days=(RESERVA_DAY_RANGE - 7))
                 r = rsv_info["rsv_time"][:10]  # 2023/01/01 形式
                 reserve_day = datetime(int(r[:4]), int(r[5:7]), int(r[8:10]))
-                if reserve_day > allowable_day:
+
+                # ichibachonaikai+xxx@gmail.com 形式であれば期限を定めず予約可能とする
+                if not (rsv_info["email"].startswith("ichibachonaikai") and rsv_info["email"].endswith("@gmail.com")) and reserve_day > allowable_day:
                     # 却下
                     log_info.append("request: deny")
                     deny_status = deny(
