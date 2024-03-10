@@ -261,7 +261,7 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
 
                 # ichibachonaikai+xxx@gmail.com 形式であれば期限を定めず予約可能とする
                 if (
-                    not (rsv_info["email"].startswith("ichibachonaikai" and rsv_info["email"].endswith("@gmail.com")) or rsv_info["email"].startswith("sugiura@terrace121.com"))
+                    not ((rsv_info["email"].startswith("ichibachonaikai") and rsv_info["email"].endswith("@gmail.com")) or rsv_info["email"].startswith("sugiura@terrace121.com"))
                     and reserve_day > allowable_day
                 ):
                     # 却下
