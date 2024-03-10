@@ -23,9 +23,7 @@ session = None
 
 
 def get_reserva_parameters():
-    reserva_system_info = parameters.get_parameter(
-        "reserva_systeminfo", transform="json"
-    )
+    reserva_system_info = parameters.get_parameter("reserva_systeminfo", transform="json")
     return (
         reserva_system_info["bus_id"],
         reserva_system_info["svd_id"],
@@ -91,9 +89,7 @@ def get_reservation_info_from_reserva_html(content: str) -> dict[str, str]:
     right_dd = right.find_all("dd")
 
     ret = {}
-    ret["hidden_rsv_no"] = soup.find(
-        "input", attrs={"name": "search_rsv_no", "type": "hidden"}
-    )["value"]
+    ret["hidden_rsv_no"] = soup.find("input", attrs={"name": "search_rsv_no", "type": "hidden"})["value"]
     ret["name"] = str(left_dd[0].text).strip()
     ret["name_kana"] = str(left_dd[1].text).strip()
     ret["email"] = str(left_dd[2].text).strip()
@@ -101,9 +97,7 @@ def get_reservation_info_from_reserva_html(content: str) -> dict[str, str]:
     ret["visible_rsv_no"] = str(right_dd[0].text).strip()
     ret["rsv_status"] = str(soup.find(id="span_status").text).strip()  # 予約確定 とか
 
-    rsvtime = soup.find("input", attrs={"id": "zoom_rsv_all_time", "type": "hidden"})[
-        "value"
-    ]
+    rsvtime = soup.find("input", attrs={"id": "zoom_rsv_all_time", "type": "hidden"})["value"]
     times = re.split("<BR>", rsvtime)
     ret_starts_at = None
     ret_ends_at = None
@@ -111,9 +105,7 @@ def get_reservation_info_from_reserva_html(content: str) -> dict[str, str]:
     month = "0"
     day = "0"
     for t in times:
-        m = re.match(
-            r"([0-9]+)/([0-9]+)/([0-9]+) ([0-9]+):([0-9]+)[^0-9]+([0-9]+):([0-9]+)", t
-        )
+        m = re.match(r"([0-9]+)/([0-9]+)/([0-9]+) ([0-9]+):([0-9]+)[^0-9]+([0-9]+):([0-9]+)", t)
         (year, month, day, s_hour, s_min, e_hour, e_min) = m.groups()
         starts_at = f"{int(s_hour):02}:{int(s_min):02}"
         ends_at = f"{int(e_hour):02}:{int(e_min):02}"
@@ -249,9 +241,7 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
 
     try:
         rsv_info = get_reservation_info_from_reserva(reserva_url)
-        registered_info = GSpreadsheetUtil.get_registered_info_from_spreadsheet(
-            workbook, rsv_info["email"]
-        )
+        registered_info = GSpreadsheetUtil.get_registered_info_from_spreadsheet(workbook, rsv_info["email"])
         response_code = 200
         remotelock: RemoteLock = RemoteLock(registered_info, rsv_info)
         if reserva_command == "request":
@@ -270,22 +260,19 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
                 reserve_day = datetime(int(r[:4]), int(r[5:7]), int(r[8:10]))
 
                 # ichibachonaikai+xxx@gmail.com 形式であれば期限を定めず予約可能とする
-                if not (rsv_info["email"].startswith("ichibachonaikai") and rsv_info["email"].endswith("@gmail.com")) and reserve_day > allowable_day:
+                if (
+                    not ((rsv_info["email"].startswith("ichibachonaikai") or rsv_info["email"].startswith("sugiura@terrace121.com")) and rsv_info["email"].endswith("@gmail.com"))
+                    and reserve_day > allowable_day
+                ):
                     # 却下
                     log_info.append("request: deny")
                     deny_status = deny(
                         rsv_info["hidden_rsv_no"],
-                        "本日時点で "
-                        + str(allowable_day)[:10]
-                        + " までが予約可能な日のため、頂いた日付("
-                        + str(reserve_day)[:10]
-                        + ")では予約はできません。",
+                        "本日時点で " + str(allowable_day)[:10] + " までが予約可能な日のため、頂いた日付(" + str(reserve_day)[:10] + ")では予約はできません。",
                     )
                     log_info.append(deny_status)
                     if deny_status != "success":
-                        logger.warning(
-                            f"deny api hasn't succeeded. [status={deny_status}] [rsv_info={rsv_info}]"
-                        )
+                        logger.warning(f"deny api hasn't succeeded. [status={deny_status}] [rsv_info={rsv_info}]")
                 else:
                     # 申請OK
                     # 鍵番号を発行してから Approve する
@@ -296,9 +283,7 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
                     if approve_status != "success":
                         remotelock.cancel_guest()
                         if approve_status != "already cancelled":
-                            logger.error(
-                                f"illegal status. remotelock guest is cancelled. approve_status={approve_status}] [rsv_info={rsv_info}]"
-                            )
+                            logger.error(f"illegal status. remotelock guest is cancelled. approve_status={approve_status}] [rsv_info={rsv_info}]")
                             response_code = 400
             else:
                 # 却下
@@ -310,9 +295,7 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
                 )
                 log_info.append(deny_status)
                 if deny_status != "success":
-                    logger.warning(
-                        f"deny api hasn't succeeded. [status={deny_status}] [rsv_info={rsv_info}]"
-                    )
+                    logger.warning(f"deny api hasn't succeeded. [status={deny_status}] [rsv_info={rsv_info}]")
                     response_code = 400
         elif reserva_command == "cancel":
             # キャンセル通知が来た場合
@@ -372,9 +355,7 @@ def reserva_check_reservation(schedule: dict):
 
 def reserva_make_reservation(user: dict, schedule: dict, check_param: dict):
     # 時間区分を表す svd_sub_no という数字を抽出する
-    r = session.get(
-        f"https://reserva.be/rsv/reservations?mode=list_add&callback_url=https://reserva.be/rsv/reservations/calendar"
-    )
+    r = session.get(f"https://reserva.be/rsv/reservations?mode=list_add&callback_url=https://reserva.be/rsv/reservations/calendar")
     r = session.post(
         "https://reserva.be/AjaxSearch",
         params={
@@ -391,13 +372,9 @@ def reserva_make_reservation(user: dict, schedule: dict, check_param: dict):
         raise RuntimeError(f"fail (status_code={r.status_code})")
     rjson = json.loads(r.text)
     if not "htmlTime" in rjson:
-        logger.error(
-            f"ERROR: user={user}, schedule={schedule}, check_param={check_param}, rjson={rjson}"
-        )
+        logger.error(f"ERROR: user={user}, schedule={schedule}, check_param={check_param}, rjson={rjson}")
     soup = BeautifulSoup(rjson["htmlTime"], "html.parser")
-    time_input_list = soup.find_all(
-        "input", attrs={"name": "rsv_svd_start_time[]", "type": "hidden"}
-    )
+    time_input_list = soup.find_all("input", attrs={"name": "rsv_svd_start_time[]", "type": "hidden"})
     rsv_svd_subno = -1
     for item in time_input_list:
         if f'{schedule["start_time"]}:00' == item["value"]:
