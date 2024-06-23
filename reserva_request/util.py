@@ -12,38 +12,28 @@ from functools import wraps
 
 
 def ret_json(status_code: int, json_dict: dict) -> dict[str, Any]:
-    return {
-        "statusCode": status_code,
-        "headers": {"Content-Type": "application/json;charset=UTF-8"},
-        "body": json.dumps(json_dict, ensure_ascii=False)
-    }
+    return {"statusCode": status_code, "headers": {"Content-Type": "application/json;charset=UTF-8"}, "body": json.dumps(json_dict, ensure_ascii=False)}
 
 
 def error_json(title: str, message: str) -> dict[str, Any]:
-    return ret_json(400, {'title': title, 'message': message})
+    return ret_json(400, {"title": title, "message": message})
 
 
-def hybrid_dict_cache(
-        local_ttl_argname: str = "local_ttl",
-        s3_ttl_argname: str = "s3_ttl",
-        default_local_ttl: int = 300,
-        default_s3_ttl: int = 3600 * 24,
-        __local_only: bool = False):
+def hybrid_dict_cache(local_ttl_argname: str = "local_ttl", s3_ttl_argname: str = "s3_ttl", default_local_ttl: int = 300, default_s3_ttl: int = 3600 * 24, __local_only: bool = False):
 
-    s3 = boto3.resource('s3')
-    s3bucket = s3.Bucket(
-        parameters.get_parameter('reserva_bucket_info'))
+    s3 = boto3.resource("s3")
+    s3bucket = s3.Bucket(parameters.get_parameter("reserva_bucket_info"))
     cache: dict = {}
 
     def make_key(f, *args, **kwargs):
-        argstr = "a-" + '-'.join(map(str, args))
-        sha512 = hashlib.sha512((json.dumps(
-            kwargs, sort_keys=True) + argstr).encode('utf-8')).hexdigest()
+        argstr = "a-" + "-".join(map(str, args))
+        sha512 = hashlib.sha512((json.dumps(kwargs, sort_keys=True) + argstr).encode("utf-8")).hexdigest()
         return f"{f.__name__}/{sha512}.json"
-    '''
+
+    """
     メタデータ: ['Metadata']
     Last Modified: ['LastModified']
-    '''
+    """
 
     def try_s3_cache(key: str) -> dict:
         if __local_only:
@@ -56,14 +46,14 @@ def hybrid_dict_cache(
 
         obj = s3bucket.Object(key)
         res: dict = obj.get()
-        metadata = res['Metadata']
-        expired: datetime = datetime.fromisoformat(metadata['expired'])
-        print(f'expired={expired}')
+        metadata = res["Metadata"]
+        expired: datetime = datetime.fromisoformat(metadata["expired"])
         if datetime.now(timezone.utc) > expired:
             # キャッシュ切れ
+            print(f"cache key={key} expired={expired}")
             return None
         # dict で返す
-        body = res['Body'].read().decode('utf-8')
+        body = res["Body"].read().decode("utf-8")
         return json.loads(body)
 
     def regist_s3_cache(key: str, data: dict, expired: datetime):
@@ -71,16 +61,15 @@ def hybrid_dict_cache(
             return
 
         obj = s3bucket.Object(key)
-        obj.put(Body=json.dumps(data, ensure_ascii=False),
-                Metadata={'expired': expired.isoformat()})
+        obj.put(Body=json.dumps(data, ensure_ascii=False), Metadata={"expired": expired.isoformat()})
 
     def wrapper(f):
 
         @wraps(f)
         def inner(*args, **kwargs):
             cache_refresh: bool = False
-            if '__cache_refresh' in kwargs:
-                cache_refresh = kwargs.pop('__cache_refresh')
+            if "__cache_refresh" in kwargs:
+                cache_refresh = kwargs.pop("__cache_refresh")
 
             local_ttl: int = default_local_ttl
             if local_ttl_argname in kwargs:
@@ -103,11 +92,9 @@ def hybrid_dict_cache(
                 data = try_s3_cache(key)
             if data is None:
                 data = f(*args, **kwargs)
-                s3_expire = datetime.now(
-                    timezone.utc) + timedelta(seconds=s3_ttl)
+                s3_expire = datetime.now(timezone.utc) + timedelta(seconds=s3_ttl)
                 regist_s3_cache(key, data, s3_expire)
-            cache[key] = (data,
-                          datetime.now(timezone.utc) + timedelta(seconds=local_ttl))
+            cache[key] = (data, datetime.now(timezone.utc) + timedelta(seconds=local_ttl))
             return data
 
         return inner
@@ -116,21 +103,19 @@ def hybrid_dict_cache(
 
 
 class GSpreadsheetUtil:
-    @ classmethod
+    @classmethod
     def get_workbook(cls):
-        apikey = parameters.get_parameter(
-            "ichiba_google_apikey", transform="json")
-        with open('/tmp/apikey.json', 'w') as f:
+        apikey = parameters.get_parameter("ichiba_google_apikey", transform="json")
+        with open("/tmp/apikey.json", "w") as f:
             json.dump(apikey, f, indent=4)
         gc = gspread.service_account(filename="/tmp/apikey.json")
-        workbook = gc.open_by_key(parameters.get_parameter(
-            "ichiba_google_spreadsheet_key"))
+        workbook = gc.open_by_key(parameters.get_parameter("ichiba_google_spreadsheet_key"))
         return workbook
 
     # 事前登録シートから当該メールアドレスを元に登録情報を取り出す
-    @ classmethod
+    @classmethod
     def get_registered_info_from_spreadsheet(cls, workbook, email: str) -> dict[str, str]:
-        sheet = workbook.worksheet("事前登録フォーム回答")
+        sheet = workbook.worksheet_by_id("95987732")
         cell_list = sheet.findall(email)
 
         if len(cell_list) == 0:
@@ -139,8 +124,7 @@ class GSpreadsheetUtil:
         target_score = 0
         target_row = None
         target_row_no = -1
-        start_datevalue = datetime.strptime(
-            "2022/01/01 00:00:00", "%Y/%m/%d %H:%M:%S")
+        start_datevalue = datetime.strptime("2022/01/01 00:00:00", "%Y/%m/%d %H:%M:%S")
         del_row_list = []
         # 本来1行だけのはずだが事前登録フォームで複数行になることがあるのでクレンジングも同時に実施する
         for cell in cell_list:
@@ -169,12 +153,12 @@ class GSpreadsheetUtil:
             for row_no in del_row_list:
                 sheet.delete_rows(row_no)
         ret = {}
-        ret['timestamp'] = target_row[0]
-        ret['email'] = target_row[1]
-        ret['name'] = target_row[2]
-        ret['member_name'] = target_row[3]
-        ret['block'] = target_row[4]
-        ret['kumi'] = target_row[5]
+        ret["timestamp"] = target_row[0]
+        ret["email"] = target_row[1]
+        ret["name"] = target_row[2]
+        ret["member_name"] = target_row[3]
+        ret["block"] = target_row[4]
+        ret["kumi"] = target_row[5]
         if len(target_row) == 7 and len(target_row[6]) > 0:
-            ret['objective'] = target_row[6]
+            ret["objective"] = target_row[6]
         return ret

@@ -24,14 +24,16 @@ def get_registered_users_and_community_members_from_workbook(__cache_refresh: bo
 
 
 def get_all_registered_users():
+    logger.info("★★get_all_registered_users")
     # users を取得する
     # 列は { 0:'timestamp', 1:'email', 2:'user_name', 3:'member_name', 4:'block', 5:'kumi', 6:'objective' }
     workbook = GSpreadsheetUtil.get_workbook()
-    cell_users = workbook.sheet1.get_all_values()
+    cell_users = workbook.get_worksheet_by_id(95987732).get_all_values()
     cell_users.pop(0)  # 先頭行は不要なので削除する
     members = {}
     users = {}
     for cell_user in cell_users:
+        logger.info(cell_user[1])
         user = {}
         user["email"] = cell_user[1]
         user["reg_timestamp"] = cell_user[0]
