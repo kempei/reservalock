@@ -115,7 +115,7 @@ class GSpreadsheetUtil:
     # 事前登録シートから当該メールアドレスを元に登録情報を取り出す
     @classmethod
     def get_registered_info_from_spreadsheet(cls, workbook, email: str) -> dict[str, str]:
-        sheet = workbook.worksheet_by_id("95987732")
+        sheet = workbook.worksheet("事前登録フォーム回答")
         cell_list = sheet.findall(email)
 
         if len(cell_list) == 0:
