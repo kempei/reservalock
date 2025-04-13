@@ -47,12 +47,20 @@ def handler_init():
 def reserva_login():
     global session
     session = requests.session()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+        "Referer": "https://www.google.com/",
+    }
+    session.headers = headers
     reserva_userinfo = parameters.get_parameter("reserva_userinfo", transform="json")
     reserva_userid = reserva_userinfo["userid"]
     reserva_pass = reserva_userinfo["password"]
     r = session.get("https://reserva.be/rsv/dashboard")
     soup = BeautifulSoup(r.content, "html.parser")
     form_element = soup.find("input", attrs={"name": "form_token"})
+    print(r.content)
     form_token = form_element["value"]
     r = session.post(
         "https://id-sso.reserva.be/login/business",
@@ -239,6 +247,8 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
     if not reserva_command in ("request", "cancel"):
         return error_json("invalid reserva command", f"{reserva_command}")
 
+    rsv_info = None
+    registered_info = None
     try:
         rsv_info = get_reservation_info_from_reserva(reserva_url)
         registered_info = GSpreadsheetUtil.get_registered_info_from_spreadsheet(workbook, rsv_info["email"])
@@ -317,7 +327,8 @@ def handler(event: dict, context: LambdaContext) -> dict[str, Any]:
     except:
         logger.exception("system error")
         log_info.append("system error")
-        append_log_to_spreadsheet(rsv_info, registered_info, log_info)
+        if rsv_info and registered_info:
+            append_log_to_spreadsheet(rsv_info, registered_info, log_info)
         raise
 
     append_log_to_spreadsheet(rsv_info, registered_info, log_info)

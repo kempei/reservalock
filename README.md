@@ -91,18 +91,38 @@ https://journal.lampetty.net/entry/call-external-api-in-gas
 
 スターにする条件は別途 GMail の機能にて設定されています。
 
+
+# SAM と Docker
+
+Docker を新しくインストールした場合は以下が必要なことがある。
+
+```:bash
+sudo ln -s ~/.docker/run/docker.sock /var/run/docker.sock
+```
+
 # テスト方法
 
+SAM のテストは以下。ファンクション名とイベント名、イベントの内容、プロファイルやリージョンは適宜変更のこと。
+
 ```bash
-$ . ./env
-$ pytest
+sam build
+sam local invoke ReservaRequestFunction -e test1-event.json --profile default --region ap-northeast-1
+```
+
+
+
+ライブラリのテストは以下。
+
+```bash
+. ./env
+pytest
 ```
 
 # デプロイ方法
 
 ```bash
-$ sam build
-$ sam deploy --profile <yourprofile>
+sam build
+sam deploy --profile <yourprofile>
 ```
 
 ## Use the SAM CLI to build and test locally

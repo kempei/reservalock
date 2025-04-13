@@ -20,6 +20,7 @@ Resources:
         - arm64
       Layers:
         - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:42
+        - arn:aws:lambda:ap-northeast-1:764866452798:layer:chrome-aws-lambda:50
         - !Ref GSpreadLayer
       FunctionUrlConfig:
         AuthType: NONE
@@ -56,6 +57,7 @@ Resources:
         - arm64
       Layers:
         - arn:aws:lambda:ap-northeast-1:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:42
+        - arn:aws:lambda:ap-northeast-1:764866452798:layer:chrome-aws-lambda:50
         - !Ref GSpreadLayer
       Events:
         ScheduleV2Event:
